@@ -4,6 +4,8 @@ pub mod note;
 pub mod relation;
 pub mod utils;
 pub mod messages;
+pub mod proxy_agent;
+pub mod all_proxy_agents;
 
 use hdk::prelude::*;
 use farmhack_integrity::*;

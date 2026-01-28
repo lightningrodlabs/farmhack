@@ -48,7 +48,8 @@ export type FarmHackSignal = {
 
 export type EntryTypes =
 | ({ type: 'Tool'; } & Tool)
-| ({ type: 'Note'; } & Note);
+| ({ type: 'Note'; } & Note)
+| ({ type: 'ProxyAgent'; } & ProxyAgent);
 
 export const ToolStatuses = [
   "Concept",
@@ -93,6 +94,23 @@ export interface UpdateNoteInput {
   updated_note: Note,
 }
 
+export interface ProxyAgent {
+  nickname: string,
+  bio: string,
+  location: string,
+  pic?: EntryHash,
+}
+
+export interface UpdateProxyAgentInput {
+  original_hash: ActionHash,
+  previous_hash: ActionHash,
+  updated_proxy_agent: ProxyAgent,
+}
+
+export type AnyAgent =
+  {type: 'ProxyAgent', hash: ActionHash} |
+  {type: 'Agent', hash: AgentPubKey}
+
 export interface RelationContent {
   path: string
   data: string
@@ -125,6 +143,9 @@ export enum FeedType {
   NoteNew,
   NoteUpdate,
   NoteDelete,
+  ProxyAgentNew,
+  ProxyAgentUpdate,
+  ProxyAgentDelete,
 }
 
 export interface FeedElem {
@@ -144,6 +165,9 @@ export const getTypeName = (type: FeedType): string => {
     case FeedType.NoteNew: return "New Comment"
     case FeedType.NoteUpdate: return "Update Comment"
     case FeedType.NoteDelete: return "Delete Comment"
+    case FeedType.ProxyAgentNew: return "New Proxy Agent"
+    case FeedType.ProxyAgentUpdate: return "Update Proxy Agent"
+    case FeedType.ProxyAgentDelete: return "Delete Proxy Agent"
   }
   return "Unknown"
 }

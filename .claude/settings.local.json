@@ -5,7 +5,10 @@
       "WebFetch(domain:farmhack.org)",
       "Bash(npm run start:*)",
       "Bash(npm run build:zomes:*)",
-      "Bash(nix develop:*)"
+      "Bash(nix develop:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm run build:happ:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

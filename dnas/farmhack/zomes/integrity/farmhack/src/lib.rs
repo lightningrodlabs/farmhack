@@ -2,6 +2,8 @@ pub mod tool;
 pub use tool::*;
 pub mod note;
 pub use note::*;
+pub mod proxy_agent;
+pub use proxy_agent::*;
 use hdi::prelude::*;
 pub mod relation;
 pub use relation::*;
@@ -12,6 +14,7 @@ pub use relation::*;
 pub enum EntryTypes {
     Tool(Tool),
     Note(Note),
+    ProxyAgent(ProxyAgent),
 }
 #[derive(Serialize, Deserialize)]
 #[hdk_link_types]
@@ -20,6 +23,8 @@ pub enum LinkTypes {
     ToolUpdates,
     NoteUpdates,
     Relations,
+    AllProxyAgents,
+    ProxyAgentUpdates,
 }
 #[hdk_extern]
 pub fn genesis_self_check(
@@ -52,6 +57,12 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 note,
                             )
                         }
+                        EntryTypes::ProxyAgent(proxy_agent) => {
+                            validate_create_proxy_agent(
+                                EntryCreationAction::Create(action),
+                                proxy_agent,
+                            )
+                        }
                     }
                 }
                 OpEntry::UpdateEntry { app_entry, action, .. } => {
@@ -66,6 +77,12 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                             validate_create_note(
                                 EntryCreationAction::Update(action),
                                 note,
+                            )
+                        }
+                        EntryTypes::ProxyAgent(proxy_agent) => {
+                            validate_create_proxy_agent(
+                                EntryCreationAction::Update(action),
+                                proxy_agent,
                             )
                         }
                     }
@@ -83,6 +100,9 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                         EntryTypes::Note(_note) => {
                             Ok(ValidateCallbackResult::Valid)
                         }
+                        EntryTypes::ProxyAgent(_proxy_agent) => {
+                            Ok(ValidateCallbackResult::Valid)
+                        }
                     }
                 }
                 _ => Ok(ValidateCallbackResult::Valid),
@@ -97,6 +117,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 LinkTypes::ToolUpdates => Ok(ValidateCallbackResult::Valid),
                 LinkTypes::NoteUpdates => Ok(ValidateCallbackResult::Valid),
                 LinkTypes::Relations => Ok(ValidateCallbackResult::Valid),
+                LinkTypes::AllProxyAgents => Ok(ValidateCallbackResult::Valid),
+                LinkTypes::ProxyAgentUpdates => Ok(ValidateCallbackResult::Valid),
             }
         }
         FlatOp::RegisterDeleteLink { link_type, .. } => {
@@ -105,6 +127,8 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                 LinkTypes::ToolUpdates => Ok(ValidateCallbackResult::Valid),
                 LinkTypes::NoteUpdates => Ok(ValidateCallbackResult::Valid),
                 LinkTypes::Relations => Ok(ValidateCallbackResult::Valid),
+                LinkTypes::AllProxyAgents => Ok(ValidateCallbackResult::Valid),
+                LinkTypes::ProxyAgentUpdates => Ok(ValidateCallbackResult::Valid),
             }
         }
         FlatOp::StoreRecord(store_record) => {
@@ -123,6 +147,12 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                                 note,
                             )
                         }
+                        EntryTypes::ProxyAgent(proxy_agent) => {
+                            validate_create_proxy_agent(
+                                EntryCreationAction::Create(action),
+                                proxy_agent,
+                            )
+                        }
                     }
                 }
                 OpRecord::UpdateEntry { app_entry, action, .. } => {
@@ -137,6 +167,12 @@ pub fn validate(op: Op) -> ExternResult<ValidateCallbackResult> {
                             validate_create_note(
                                 EntryCreationAction::Update(action),
                                 note,
+                            )
+                        }
+                        EntryTypes::ProxyAgent(proxy_agent) => {
+                            validate_create_proxy_agent(
+                                EntryCreationAction::Update(action),
+                                proxy_agent,
                             )
                         }
                     }

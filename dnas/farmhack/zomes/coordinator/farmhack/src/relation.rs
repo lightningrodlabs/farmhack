@@ -104,7 +104,6 @@ pub fn get_feed(input: GetFeedInput) -> ExternResult<Vec<RelationInfo>> {
     Ok(relations)
 }
 
-#[hdk_extern]
 pub fn get_relations(input: AnyLinkableHash) -> ExternResult<Vec<RelationInfo>> {
     let hash = AnyLinkableHash::from(input);
     let links = get_links(
@@ -131,4 +130,9 @@ pub fn get_relations(input: AnyLinkableHash) -> ExternResult<Vec<RelationInfo>> 
         relations.push(relation_info);
     }
     Ok(relations)
+}
+
+#[hdk_extern]
+pub fn get_relations_extern(input: AnyLinkableHash) -> ExternResult<Vec<RelationInfo>> {
+    get_relations(input)
 }
