@@ -1,0 +1,71 @@
+import type {
+  Record,
+  AppClient,
+  EntryHash,
+  AgentPubKey,
+  ActionHash,
+  RoleName,
+  ZomeName
+} from '@holochain/client';
+import type { Tool, UpdateToolInput, Note, UpdateNoteInput, Relation, RelationInfo, GetFeedInput, Info } from './farmhack/farmhack/types';
+
+export class FarmHackClient {
+  constructor(public client: AppClient, public roleName: RoleName, public zomeName: ZomeName = 'farmhack') {}
+
+  async createTool(tool: Tool): Promise<Record> {
+    return this.callZome('create_tool', tool);
+  }
+
+  async getTool(toolHash: ActionHash): Promise<Record | undefined> {
+    return this.callZome('get_tool', toolHash);
+  }
+
+  async updateTool(input: UpdateToolInput): Promise<Record> {
+    return this.callZome('update_tool', input);
+  }
+
+  async deleteTool(toolHash: ActionHash): Promise<ActionHash> {
+    return this.callZome('delete_tool', toolHash);
+  }
+
+  async getAllTools(): Promise<Array<any>> {
+    return this.callZome('get_all_tools', null);
+  }
+
+  async createNote(note: Note): Promise<Record> {
+    return this.callZome('create_note', note);
+  }
+
+  async getNote(noteHash: ActionHash): Promise<Record | undefined> {
+    return this.callZome('get_note', noteHash);
+  }
+
+  async updateNote(input: UpdateNoteInput): Promise<Record> {
+    return this.callZome('update_note', input);
+  }
+
+  async deleteNote(noteHash: ActionHash): Promise<ActionHash> {
+    return this.callZome('delete_note', noteHash);
+  }
+
+  async createRelations(relations: Array<Relation>): Promise<Array<ActionHash>> {
+    return this.callZome('create_relations', relations);
+  }
+
+  async deleteRelations(hashes: Array<ActionHash>): Promise<void> {
+    return this.callZome('delete_relations', hashes);
+  }
+
+  async getFeed(input: GetFeedInput): Promise<Array<RelationInfo>> {
+    return this.callZome('get_feed', input);
+  }
+
+  private callZome(fn_name: string, payload: any) {
+    return this.client.callZome({
+      role_name: this.roleName,
+      zome_name: this.zomeName,
+      fn_name,
+      payload,
+    });
+  }
+}

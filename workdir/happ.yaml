@@ -1,0 +1,17 @@
+---
+manifest_version: "0"
+name: farmhack
+description: ~
+roles:
+  - name: farmhack
+    provisioning:
+      strategy: create
+      deferred: false
+    dna:
+      path: "../dnas/farmhack/workdir/farmhack.dna"
+      modifiers:
+        network_seed: ~
+        properties: ~
+        quantum_time: ~
+      version: ~
+      clone_limit: 5000

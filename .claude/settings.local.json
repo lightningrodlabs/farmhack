@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "WebFetch(domain:farmhack.org)",
+      "Bash(npm run start:*)",
+      "Bash(npm run build:zomes:*)",
+      "Bash(nix develop:*)"
+    ]
+  }
+}

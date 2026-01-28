@@ -1,0 +1,62 @@
+use hdk::prelude::*;
+use farmhack_integrity::*;
+#[hdk_extern]
+pub fn create_note(note: Note) -> ExternResult<Record> {
+    let note_hash = create_entry(&EntryTypes::Note(note.clone()))?;
+
+    let record = get(note_hash.clone(), GetOptions::local())?
+        .ok_or(
+            wasm_error!(
+                WasmErrorInner::Guest(String::from("Could not find the newly created Note"))
+            ),
+        )?;
+    Ok(record)
+}
+#[hdk_extern]
+pub fn get_note(original_note_hash: ActionHash) -> ExternResult<Option<Record>> {
+    let links = get_links(
+        LinkQuery::try_new(
+            original_note_hash.clone(),
+            LinkTypes::NoteUpdates,
+        )?,
+        GetStrategy::Local
+    )?;
+    let latest_link = links
+        .into_iter()
+        .max_by(|link_a, link_b| link_a.timestamp.cmp(&link_b.timestamp));
+    let latest_note_hash = match latest_link {
+        Some(link) => ActionHash::try_from(link.target.clone()).map_err(|err| wasm_error!(err))?,
+        None => original_note_hash.clone(),
+    };
+    get(latest_note_hash, GetOptions::local())
+}
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UpdateNoteInput {
+    pub original_note_hash: ActionHash,
+    pub previous_note_hash: ActionHash,
+    pub updated_note: Note,
+}
+#[hdk_extern]
+pub fn update_note(input: UpdateNoteInput) -> ExternResult<Record> {
+    let updated_note_hash = update_entry(
+        input.previous_note_hash.clone(),
+        &input.updated_note,
+    )?;
+    create_link(
+        input.original_note_hash.clone(),
+        updated_note_hash.clone(),
+        LinkTypes::NoteUpdates,
+        (),
+    )?;
+    let record = get(updated_note_hash.clone(), GetOptions::local())?
+        .ok_or(
+            wasm_error!(
+                WasmErrorInner::Guest(String::from("Could not find the newly updated Note"))
+            ),
+        )?;
+    Ok(record)
+}
+#[hdk_extern]
+pub fn delete_note(original_note_hash: ActionHash) -> ExternResult<ActionHash> {
+    delete_entry(original_note_hash)
+}

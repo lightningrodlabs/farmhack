@@ -1,0 +1,34 @@
+[profile.dev]
+opt-level = "z"
+
+[profile.release]
+opt-level = "z"
+
+[workspace]
+members = ["dnas/*/zomes/coordinator/*", "dnas/*/zomes/integrity/*"]
+exclude = ["src-tauri"]
+resolver = "2"
+
+[workspace.dependencies]
+hdi = "0.7.0"
+hdk = "0.6.0"
+serde = "1"
+holochain_serialized_bytes = "0.0.56"
+
+[workspace.dependencies.farmhack]
+path = "dnas/farmhack/zomes/coordinator/farmhack"
+
+[workspace.dependencies.farmhack_integrity]
+path = "dnas/farmhack/zomes/integrity/farmhack"
+
+[workspace.dependencies.file_storage]
+path = "dnas/farmhack/zomes/coordinator/file_storage"
+
+[workspace.dependencies.file_storage_integrity]
+path = "dnas/farmhack/zomes/integrity/file_storage"
+
+[workspace.dependencies.profiles]
+path = "dnas/farmhack/zomes/coordinator/profiles"
+
+[workspace.dependencies.profiles_integrity]
+path = "dnas/farmhack/zomes/integrity/profiles"
