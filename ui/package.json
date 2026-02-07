@@ -20,6 +20,7 @@
     "@theweave/api": "^0.6.3",
     "@theweave/elements": "^0.6.1",
     "internal-ip": "^7.0.0",
+    "marked": "^17.0.1",
     "svelte": "^3.55.1",
     "uuid": "^10.0.0"
   },

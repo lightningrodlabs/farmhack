@@ -3,7 +3,7 @@ import type { ProfilesStore } from "@holochain-open-dev/profiles";
 import type { FileStorageClient } from "@holochain-open-dev/file-storage";
 import type { ActionHash, DnaHash, EntryHash, AgentPubKey } from "@holochain/client";
 import type { FarmHackClient } from "../farmhack-client";
-import type { Info, Tool, Note, UIProps, RelationInfo, Relation, ProxyAgent, UpdateProxyAgentInput } from "../farmhack/farmhack/types";
+import { DetailsType, type Info, type Tool, type Note, type UIProps, type Details, type RelationInfo, type Relation, type ProxyAgent, type UpdateProxyAgentInput } from "../farmhack/farmhack/types";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import type { CloneManagerStore } from "./clone-manager-store";
 import { encodeHashToBase64 } from "@holochain/client";
@@ -14,7 +14,7 @@ export class FarmHackStore {
   proxyAgents: Writable<Array<Info<ProxyAgent>>> = writable([]);
   uiProps: Writable<UIProps> = writable({
     pane: "tools",
-    detailHash: undefined,
+    detailsStack: [],
   });
 
   constructor(
@@ -89,12 +89,24 @@ export class FarmHackStore {
     this.uiProps.update(p => ({ ...p, ...props }));
   }
 
-  openToolDetail(hash: ActionHash) {
-    this.setUIprops({ detailHash: hash });
+  openDetails(type: DetailsType, hash: ActionHash) {
+    const detailsStack = get(this.uiProps).detailsStack;
+    detailsStack.unshift({ type, hash });
+    this.setUIprops({ detailsStack });
   }
 
-  closeDetail() {
-    this.setUIprops({ detailHash: undefined });
+  closeDetails() {
+    const detailsStack = get(this.uiProps).detailsStack;
+    detailsStack.shift();
+    this.setUIprops({ detailsStack });
+  }
+
+  openToolDetail(hash: ActionHash) {
+    this.openDetails(DetailsType.Tool, hash);
+  }
+
+  openProfile(hash: ActionHash) {
+    this.openDetails(DetailsType.Profile, hash);
   }
 
   // ProxyAgent methods

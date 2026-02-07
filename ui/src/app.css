@@ -193,6 +193,10 @@ input, button, textarea, select {
     padding-bottom: 100px;
   }
 
+  .tool-details {
+    padding-top: 60px;
+  }
+
   .card {
     border-radius: 10px;
   }

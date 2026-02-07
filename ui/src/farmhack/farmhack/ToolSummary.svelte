@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getStoreContext } from "../../contexts";
-  import type { Info, Tool } from "./types";
+  import { toolAuthor, type Info, type Tool } from "./types";
   import { truncateText } from "./utils";
   import ShowFile from "./ShowFile.svelte";
 
@@ -8,6 +8,8 @@
   const store = getStoreContext();
 
   $: entry = tool.record.entry;
+  $: author = toolAuthor(tool);
+  $: createdAt = new Date(tool.record.action.timestamp);
 </script>
 
 <div class="card" on:click={() => store.openToolDetail(tool.original_hash)} on:keypress={() => {}}>
@@ -19,7 +21,16 @@
   <div class="tool-info" style="padding: 12px; flex: 1;">
     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
       <h4 style="margin: 0; font-size: 16px;">{entry.title}</h4>
-      <span class="status-badge">{entry.status}</span>
+      <div style="display: flex; gap: 4px; flex-shrink: 0;">
+        <span class="status-badge">{entry.status}</span>
+        {#if entry.license}
+          <span class="license-badge">{entry.license}</span>
+        {/if}
+      </div>
+    </div>
+    <div class="meta">
+      {#if author}<span>{author.name}</span>{/if}
+      <span>{createdAt.toLocaleDateString()}</span>
     </div>
     <p style="margin: 4px 0; opacity: 0.7; font-size: 13px;">{truncateText(entry.description, 120)}</p>
     {#if entry.tags.length > 0}
@@ -56,6 +67,21 @@
     padding: 2px 8px;
     border-radius: 12px;
     white-space: nowrap;
+  }
+  .license-badge {
+    font-size: 11px;
+    background: #e3f2fd;
+    color: #1565c0;
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+  .meta {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+    opacity: 0.5;
+    margin-top: 2px;
   }
   .tag {
     font-size: 11px;

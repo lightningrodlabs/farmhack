@@ -9,4 +9,10 @@ pub struct Tool {
     pub tags: Vec<String>,
     pub pic: Option<EntryHash>,
     pub trashed: bool,
+    pub license: String,
+    pub wiki: String,
+    pub wiki2: String,
+    pub wiki3: String,
+    pub video_url: Option<String>,
+    pub images: Vec<EntryHash>,
 }

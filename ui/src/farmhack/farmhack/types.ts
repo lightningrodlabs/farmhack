@@ -66,6 +66,12 @@ export interface Tool {
   tags: Array<string>;
   pic?: EntryHash;
   trashed: boolean;
+  license: string;
+  wiki: string;
+  wiki2: string;
+  wiki3: string;
+  video_url?: string;
+  images: Array<EntryHash>;
 }
 
 export interface Info<T> {
@@ -182,7 +188,23 @@ export const toolTags = (tool: Info<Tool>): Array<string> => {
   return Object.keys(tagsMap).sort((a, b) => tagsMap[b] - tagsMap[a])
 }
 
+export const toolAuthor = (tool: Info<Tool>): { hash: ActionHash, name: string } | undefined => {
+  const rel = tool.relations.find(r => r.relation.content.path === "tool.author");
+  if (!rel) return undefined;
+  return { hash: rel.relation.dst, name: rel.relation.content.data };
+}
+
+export enum DetailsType {
+  Tool = 0,
+  Profile,
+}
+
+export interface Details {
+  type: DetailsType,
+  hash: ActionHash,
+}
+
 export interface UIProps {
   pane: string,
-  detailHash: ActionHash | undefined,
+  detailsStack: Array<Details>,
 }

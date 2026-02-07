@@ -61,24 +61,48 @@
         document.body.removeChild(element);
     }
 
-    const serializeInfo = async (info: Info<any>, hasPic: boolean): Promise<any> => {
-        let entry = { ...info.record.entry };
-        if (hasPic && entry.pic) {
-            try {
-                const file = await store.fileStorageClient.downloadFile(entry.pic);
-                const data = await file.arrayBuffer();
-                entry.pic_hash = encodeHashToBase64(entry.pic);
-                delete entry.pic;
-                entry.pic_data = uint8ArrayToBase64(new Uint8Array(data));
-                entry.pic_file = {
+    const serializeFile = async (hash: EntryHash): Promise<any> => {
+        try {
+            const file = await store.fileStorageClient.downloadFile(hash);
+            const data = await file.arrayBuffer();
+            return {
+                hash: encodeHashToBase64(hash),
+                data: uint8ArrayToBase64(new Uint8Array(data)),
+                file: {
                     name: file.name,
                     size: file.size,
                     file_type: file.type,
                     last_modified: file.lastModified,
-                };
-            } catch (e) {
-                console.log("Error downloading file", e);
+                },
+            };
+        } catch (e) {
+            console.log("Error downloading file", e);
+            return null;
+        }
+    }
+
+    const serializeInfo = async (info: Info<any>, hasPic: boolean): Promise<any> => {
+        let entry = { ...info.record.entry };
+        if (hasPic && entry.pic) {
+            const serialized = await serializeFile(entry.pic);
+            if (serialized) {
+                entry.pic_hash = serialized.hash;
+                delete entry.pic;
+                entry.pic_data = serialized.data;
+                entry.pic_file = serialized.file;
             }
+        }
+        // Serialize images array
+        if (entry.images && entry.images.length > 0) {
+            const serializedImages = [];
+            for (const imgHash of entry.images) {
+                const serialized = await serializeFile(imgHash);
+                if (serialized) {
+                    serializedImages.push(serialized);
+                }
+            }
+            entry.images_data = serializedImages;
+            delete entry.images;
         }
         const obj = {
             original_hash: encodeHashToBase64(info.original_hash),
@@ -159,45 +183,117 @@
         return pic;
     }
 
+    let importStatus = "";
+    let importProgress = "";
+
     const doImport = async (data: any) => {
+        const hashMap: Record<string, ActionHash> = {};
+        const deferredRelations: Array<{src: string, rel: any}> = [];
+
         // Import proxy agents first
-        const proxyAgentsMap = {};
         if (data.proxyAgents) {
-            for (const p of data.proxyAgents) {
-                const e = p.entry;
-                let pic = await uploadImportedFile(e);
-                const actionHash = await store.createProxyAgent(e.nickname, e.bio, e.location, pic);
-                proxyAgentsMap[p.original_hash] = actionHash;
+            importStatus = "Importing proxy agents...";
+            for (let i = 0; i < data.proxyAgents.length; i++) {
+                const p = data.proxyAgents[i];
+                importProgress = `${i + 1}/${data.proxyAgents.length}`;
+                try {
+                    const e = p.entry;
+                    let pic = await uploadImportedFile(e);
+                    const actionHash = await store.createProxyAgent(e.nickname, e.bio, e.location, pic);
+                    hashMap[p.original_hash] = actionHash;
+                } catch (err) {
+                    console.error(`Error importing proxy agent ${p.entry?.nickname}:`, err);
+                }
             }
         }
 
         // Import tools
-        const toolsMap = {};
         if (data.tools) {
-            for (const t of data.tools) {
-                const e = t.entry;
-                let pic = await uploadImportedFile(e);
-                const tool: Tool = {
-                    title: e.title,
-                    description: e.description,
-                    status: e.status,
-                    tags: e.tags || [],
-                    pic,
-                    trashed: e.trashed || false,
-                };
-                const actionHash = await store.createTool(tool);
-                toolsMap[t.original_hash] = actionHash;
+            importStatus = "Importing tools...";
+            for (let i = 0; i < data.tools.length; i++) {
+                const t = data.tools[i];
+                importProgress = `${i + 1}/${data.tools.length}`;
+                try {
+                    const e = t.entry;
+                    let pic = await uploadImportedFile(e);
 
-                // Create relations for this tool
-                if (t.relations) {
-                    for (const rel of t.relations) {
-                        // Map destination hashes if they refer to imported items
-                        let dst = toolsMap[rel.dst] || decodeHashFromBase64(rel.dst);
+                    // Upload gallery images
+                    let images: EntryHash[] = [];
+                    if (e.images_data && e.images_data.length > 0) {
+                        for (const imgData of e.images_data) {
+                            try {
+                                const file = new File([base64ToUint8Array(imgData.data)], imgData.file.name, {
+                                    lastModified: imgData.file.last_modified,
+                                    type: imgData.file.file_type,
+                                });
+                                const hash = await store.fileStorageClient.uploadFile(file);
+                                images.push(hash);
+                            } catch (imgErr) {
+                                console.warn(`  Warning: failed to upload image for ${e.title}:`, imgErr);
+                            }
+                        }
+                    }
+
+                    const tool: Tool = {
+                        title: e.title,
+                        description: e.description || "",
+                        status: e.status || "Concept",
+                        tags: e.tags || [],
+                        pic,
+                        trashed: e.trashed || false,
+                        license: e.license || "",
+                        wiki: e.wiki || "",
+                        wiki2: e.wiki2 || "",
+                        wiki3: e.wiki3 || "",
+                        video_url: e.video_url || null,
+                        images,
+                    };
+                    const actionHash = await store.createTool(tool);
+                    hashMap[t.original_hash] = actionHash;
+
+                    // Create relations for this tool
+                    if (t.relations) {
+                        for (const rel of t.relations) {
+                            const dst = hashMap[rel.dst];
+                            if (dst) {
+                                try {
+                                    await store.createRelations([{
+                                        src: actionHash,
+                                        dst,
+                                        content: rel.content
+                                    }]);
+                                } catch (relErr) {
+                                    console.warn(`  Warning: failed to create relation for ${e.title}:`, relErr);
+                                }
+                            } else {
+                                // Destination not yet imported, defer
+                                deferredRelations.push({ src: t.original_hash, rel });
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error(`Error importing tool [${i + 1}] ${t.entry?.title}:`, err);
+                }
+            }
+        }
+
+        // Second pass: create deferred cross-tool relations
+        if (deferredRelations.length > 0) {
+            importStatus = "Creating cross-tool relations...";
+            for (let i = 0; i < deferredRelations.length; i++) {
+                const { src, rel } = deferredRelations[i];
+                importProgress = `${i + 1}/${deferredRelations.length}`;
+                const srcHash = hashMap[src];
+                const dstHash = hashMap[rel.dst];
+                if (srcHash && dstHash) {
+                    try {
                         await store.createRelations([{
-                            src: actionHash,
-                            dst,
+                            src: srcHash,
+                            dst: dstHash,
                             content: rel.content
                         }]);
+                    } catch (err) {
+                        console.warn(`  Warning: failed deferred relation:`, err);
                     }
                 }
             }
@@ -205,27 +301,45 @@
 
         // Import notes
         if (data.notes) {
-            for (const n of data.notes) {
-                const e = n.entry;
-                if (!e.trashed) {
-                    let pic = await uploadImportedFile(e);
-                    // Map tool reference to imported tool
-                    const toolHash = toolsMap[encodeHashToBase64(e.tool)] || e.tool;
-                    const note: Note = {
-                        text: e.text,
-                        tool: typeof toolHash === 'string' ? decodeHashFromBase64(toolHash) : toolHash,
-                        pic,
-                        tags: e.tags || [],
-                        trashed: false,
-                    };
-                    await store.createNote(note);
+            importStatus = "Importing comments...";
+            for (let i = 0; i < data.notes.length; i++) {
+                const n = data.notes[i];
+                importProgress = `${i + 1}/${data.notes.length}`;
+                try {
+                    const e = n.entry;
+                    if (!e.trashed) {
+                        let pic = await uploadImportedFile(e);
+                        // Map tool reference: could be a placeholder hash string or already a Uint8Array
+                        const toolHash = hashMap[typeof e.tool === 'string' ? e.tool : encodeHashToBase64(e.tool)];
+                        if (toolHash) {
+                            const note: Note = {
+                                text: e.text,
+                                tool: toolHash,
+                                pic,
+                                tags: e.tags || [],
+                                trashed: false,
+                            };
+                            const noteHash = await store.createNote(note);
+                            // Link note to tool
+                            await store.createRelations([{
+                                src: toolHash,
+                                dst: noteHash,
+                                content: { path: "tool.note", data: "" }
+                            }]);
+                        }
+                    }
+                } catch (err) {
+                    console.error(`Error importing note [${i + 1}]:`, err);
                 }
             }
         }
 
         // Refresh data
+        importStatus = "Refreshing...";
         await store.fetchTools();
         await store.fetchProxyAgents();
+        importStatus = "";
+        importProgress = "";
     }
 </script>
 
@@ -262,12 +376,17 @@
             <div class="admin-section-desc">
                 <h3>Import/Export</h3>
                 <p>Export all data to JSON or import from a previous export.</p>
+                {#if importStatus}
+                    <p style="margin-top: 8px; font-weight: 500; color: #1565c0;">
+                        {importStatus} {importProgress}
+                    </p>
+                {/if}
             </div>
             <div style="display:flex; flex-direction: row; gap: 8px;">
-                <button on:click={async () => await doExport()}>
+                <button on:click={async () => await doExport()} disabled={!!importStatus}>
                     Export
                 </button>
-                <button on:click={() => fileinput.click()}>
+                <button on:click={() => fileinput.click()} disabled={!!importStatus}>
                     Import
                 </button>
             </div>

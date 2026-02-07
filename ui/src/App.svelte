@@ -3,27 +3,25 @@
   import { AppWebsocket } from "@holochain/client";
   import { CloneManagerStore } from "./stores/clone-manager-store";
   import { storeContext, cloneManagerStoreContext } from "./contexts";
-  import { ROLE_NAME } from "./farmhack/farmhack/types";
+  import { ROLE_NAME, DetailsType } from "./farmhack/farmhack/types";
   import AllTools from "./farmhack/farmhack/AllTools.svelte";
   import ToolDetail from "./farmhack/farmhack/ToolDetail.svelte";
   import ToolCrud from "./farmhack/farmhack/ToolCrud.svelte";
   import Feed from "./farmhack/farmhack/Feed.svelte";
-  import CloneManagerActiveButton from "./farmhack/farmhack/CloneManagerActiveButton.svelte";
-  import CloneManagerDialog from "./farmhack/farmhack/CloneManagerDialog.svelte";
   import Admin from "./farmhack/farmhack/Admin.svelte";
   import AllProxyAgents from "./farmhack/farmhack/AllProxyAgents.svelte";
+  import AgentProfile from "./farmhack/farmhack/AgentProfile.svelte";
 
   let cloneManagerStore: CloneManagerStore | undefined;
   let loading = true;
   let connected = false;
   let error: string | undefined;
   let showCreateTool = false;
-  let showCloneManager = false;
 
   $: store = cloneManagerStore?.activeStore;
   $: uiProps = $store ? $store.uiProps : undefined;
   $: pane = $store ? $uiProps.pane : "tools";
-  $: detailHash = $store ? $uiProps.detailHash : undefined;
+  $: topDetail = $store && $uiProps.detailsStack.length > 0 ? $uiProps.detailsStack[0] : undefined;
 
   onMount(async () => {
     try {
@@ -50,7 +48,7 @@
   const loadStore = async () => {
     if (!$store) return;
     loading = true;
-    await $store.fetchTools();
+    await Promise.all([$store.fetchTools(), $store.fetchProxyAgents()]);
     loading = false;
   };
 
@@ -58,7 +56,7 @@
 
   function setPane(p: string) {
     if ($store) {
-      $store.setUIprops({ pane: p, detailHash: undefined });
+      $store.setUIprops({ pane: p, detailsStack: [] });
     }
   }
 
@@ -88,7 +86,6 @@
                   + New Tool
                 </button>
               {/if}
-              <CloneManagerActiveButton on:click={() => showCloneManager = true} />
             </div>
           </div>
         </div>
@@ -110,8 +107,12 @@
           {/if}
         </div>
 
-        {#if detailHash}
-          <ToolDetail toolHash={detailHash} on:close={() => $store.closeDetail()} />
+        {#if topDetail}
+          {#if topDetail.type === DetailsType.Tool}
+            <ToolDetail toolHash={topDetail.hash} on:close={() => $store.closeDetails()} />
+          {:else if topDetail.type === DetailsType.Profile}
+            <AgentProfile profileHash={topDetail.hash} on:close={() => $store.closeDetails()} />
+          {/if}
         {/if}
       </div>
 
@@ -140,9 +141,6 @@
         <ToolCrud on:save={handleToolCreated} on:cancel={() => showCreateTool = false} />
       {/if}
 
-      {#if showCloneManager}
-        <CloneManagerDialog on:close={() => showCloneManager = false} />
-      {/if}
     {/if}
   {:else}
     {#if error}
