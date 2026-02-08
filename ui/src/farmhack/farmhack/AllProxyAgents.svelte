@@ -77,7 +77,7 @@ onMount(async () => {
     .notice {
         text-align: center;
         padding: 32px;
-        color: #666;
+        color: var(--muted-text-color);
     }
 
     .error {

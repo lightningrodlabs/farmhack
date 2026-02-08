@@ -208,7 +208,7 @@
     margin: 0 0 8px 0;
   }
   .welcome-card p {
-    color: #666;
+    color: var(--muted-text-color);
     margin: 0 0 24px 0;
   }
 </style>

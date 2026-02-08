@@ -359,7 +359,7 @@
     display: flex;
     gap: 16px;
     font-size: 13px;
-    color: #666;
+    color: var(--muted-text-color);
   }
   .author-link {
     color: var(--primary-color);
@@ -380,7 +380,7 @@
     background: white;
     cursor: pointer;
     font-size: 13px;
-    color: #555;
+    color: var(--muted-text-color);
   }
   .edit-btn:hover {
     background: #f5f5f5;
@@ -501,7 +501,7 @@
     margin: 0 0 8px 0;
     font-size: 14px;
     font-weight: 600;
-    color: #555;
+    color: var(--muted-text-color);
   }
   .file-list {
     display: flex;

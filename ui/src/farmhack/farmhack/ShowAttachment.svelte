@@ -123,7 +123,7 @@
     min-width: 0;
     font-size: 13px;
     text-decoration: none;
-    color: #333;
+    color: var(--dark-text-color);
   }
   .file-link:hover {
     color: #1565c0;
@@ -144,7 +144,7 @@
     border-radius: 3px;
     background: white;
     cursor: pointer;
-    color: #555;
+    color: var(--muted-text-color);
     flex-shrink: 0;
   }
   .toggle-btn:hover {

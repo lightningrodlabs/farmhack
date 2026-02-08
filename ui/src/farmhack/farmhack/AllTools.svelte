@@ -76,101 +76,126 @@
   }
 </script>
 
-<div class="tools-filter-bar">
-  <div class="search-row">
-    <input
-      type="text"
-      placeholder="Search tools..."
-      bind:value={searchQuery}
-      class="search-input"
-    />
-    {#if searchQuery || selectedTag}
-      <button class="clear-btn" on:click={clearFilters}>Clear</button>
-    {/if}
-  </div>
-  {#if allTags.length > 0}
-    <div class="tag-bar">
-      {#each allTags as tag}
-        <button
-          class="tag-filter"
-          class:active={selectedTag === tag}
-          on:click={() => selectedTag = selectedTag === tag ? "" : tag}
-        >
-          {tag}
-        </button>
-      {/each}
-    </div>
-  {/if}
-</div>
-
-<div class="tools-list">
-  {#each visibleTools as tool (tool.original_hash)}
-    <ToolSummary {tool} />
-  {:else}
-    <div style="text-align: center; padding: 40px; opacity: 0.5;">
+<div class="tools-layout">
+  <aside class="tools-sidebar">
+    <div class="search-box">
+      <input
+        type="text"
+        placeholder="Search tools..."
+        bind:value={searchQuery}
+        class="search-input"
+      />
       {#if searchQuery || selectedTag}
-        No tools match your filters.
-      {:else}
-        No tools yet. Create one to get started.
+        <button class="clear-btn" on:click={clearFilters}>Clear</button>
       {/if}
     </div>
-  {/each}
-  {#if hasMore}
-    <div use:bindSentinel class="sentinel"></div>
-  {/if}
+    {#if allTags.length > 0}
+      <div class="sidebar-heading">Tags</div>
+      <div class="tag-list">
+        {#each allTags as tag}
+          <button
+            class="tag-filter"
+            class:active={selectedTag === tag}
+            on:click={() => selectedTag = selectedTag === tag ? "" : tag}
+          >
+            {tag}
+          </button>
+        {/each}
+      </div>
+    {/if}
+  </aside>
+
+  <div class="tools-main">
+    {#each visibleTools as tool (tool.original_hash)}
+      <ToolSummary {tool} />
+    {:else}
+      <div class="empty">
+        {#if searchQuery || selectedTag}
+          No tools match your filters.
+        {:else}
+          No tools yet. Create one to get started.
+        {/if}
+      </div>
+    {/each}
+    {#if hasMore}
+      <div use:bindSentinel class="sentinel"></div>
+    {/if}
+  </div>
 </div>
 
 <style>
-  .tools-filter-bar {
-    padding: 0 10px 8px 10px;
+  .tools-layout {
+    display: flex;
+    gap: 16px;
+    padding: 0 10px;
+    width: 100%;
+  }
+  .tools-sidebar {
+    width: 180px;
+    flex-shrink: 0;
     position: sticky;
     top: 0;
-    background: white;
-    z-index: 5;
+    align-self: flex-start;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
   }
-  .search-row {
+  .tools-main {
+    flex: 1;
+    min-width: 0;
     display: flex;
+    flex-direction: column;
     gap: 8px;
-    margin-bottom: 8px;
+  }
+  .search-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
   }
   .search-input {
-    flex: 1;
-    padding: 8px 12px;
+    width: 100%;
+    padding: 8px 10px;
     border: 1px solid #ddd;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 13px;
     outline: none;
   }
   .search-input:focus {
     border-color: #4CAF50;
   }
   .clear-btn {
-    padding: 4px 12px;
+    padding: 4px 10px;
     border: 1px solid #ddd;
     border-radius: 6px;
     background: white;
     cursor: pointer;
-    font-size: 13px;
-    white-space: nowrap;
+    font-size: 12px;
   }
   .clear-btn:hover {
     background: #f0f0f0;
   }
-  .tag-bar {
+  .sidebar-heading {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  .tag-list {
     display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-    max-height: 68px;
-    overflow-y: auto;
+    flex-direction: column;
+    gap: 2px;
   }
   .tag-filter {
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 12px;
-    border: 1px solid #ddd;
-    background: white;
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: none;
+    background: none;
     cursor: pointer;
-    white-space: nowrap;
+    text-align: left;
+    color: var(--muted-text-color);
   }
   .tag-filter:hover {
     background: #f0f0f0;
@@ -178,15 +203,34 @@
   .tag-filter.active {
     background: #4CAF50;
     color: white;
-    border-color: #4CAF50;
   }
-  .tools-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 0 10px;
+  .empty {
+    text-align: center;
+    padding: 40px;
+    opacity: 0.5;
   }
   .sentinel {
     height: 1px;
+  }
+
+  @media (max-width: 600px) {
+    .tools-layout {
+      flex-direction: column;
+    }
+    .tools-sidebar {
+      width: 100%;
+      position: static;
+      max-height: none;
+    }
+    .tag-list {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .tag-filter {
+      padding: 2px 8px;
+      border: 1px solid #ddd;
+      border-radius: 12px;
+    }
   }
 </style>

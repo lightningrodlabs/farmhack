@@ -158,7 +158,7 @@
     color: #0d47a1;
   }
   .detail {
-    color: #555;
+    color: var(--muted-text-color);
   }
   .note-preview {
     margin-top: 4px;
@@ -166,7 +166,7 @@
     background: #f5f5f5;
     border-radius: 4px;
     font-size: 12px;
-    color: #555;
+    color: var(--muted-text-color);
     white-space: pre-wrap;
     overflow: hidden;
     max-height: 60px;

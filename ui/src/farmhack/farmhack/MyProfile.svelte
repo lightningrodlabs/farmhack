@@ -93,7 +93,7 @@
   }
   .field {
     font-size: 14px;
-    color: #555;
+    color: var(--muted-text-color);
     margin-bottom: 4px;
   }
   .field-label {
@@ -107,7 +107,7 @@
     background: white;
     cursor: pointer;
     font-size: 13px;
-    color: #555;
+    color: var(--muted-text-color);
   }
   .edit-btn:hover {
     background: #f5f5f5;
@@ -145,10 +145,10 @@
     background: none;
     font-size: 18px;
     cursor: pointer;
-    color: #666;
+    color: var(--muted-text-color);
     padding: 4px;
   }
   .close-btn:hover {
-    color: #333;
+    color: var(--dark-text-color);
   }
 </style>

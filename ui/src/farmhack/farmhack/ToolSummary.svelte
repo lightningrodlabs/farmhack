@@ -32,7 +32,7 @@
       {#if authors.length > 0}<span>{authors.map(a => a.name).join(", ")}</span>{/if}
       <span>{createdAt.toLocaleDateString()}</span>
     </div>
-    <p style="margin: 4px 0; opacity: 0.7; font-size: 13px;">{truncateText(entry.description, 120)}</p>
+    <p style="margin: 4px 0; color: var(--muted-text-color); font-size: 13px;">{truncateText(entry.description, 120)}</p>
     {#if entry.tags.length > 0}
       <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px;">
         {#each entry.tags.slice(0, 5) as tag}
@@ -80,7 +80,7 @@
     display: flex;
     gap: 8px;
     font-size: 12px;
-    opacity: 0.5;
+    color: var(--muted-text-color);
     margin-top: 2px;
   }
   .tag {

@@ -3,7 +3,8 @@
   --secondary-color: #8BC34A;
   --bg-color: #F5F5F5;
   --light-text-color: #FFF;
-  --dark-text-color: #333;
+  --dark-text-color: #3a3f47;
+  --muted-text-color: #5a6069;
   --border-color: #DDD;
 }
 
@@ -17,7 +18,7 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.5;
-  color: rgba(86, 94, 109, 1.0);
+  color: var(--dark-text-color);
   padding: 0px;
   height: 100%;
   overflow: hidden;
@@ -66,7 +67,7 @@ input, button, textarea, select {
   padding: 5px;
   margin: 5px;
   background-color: transparent;
-  color: rgba(86, 94, 109, 1);
+  color: var(--dark-text-color);
   transition: all .25s ease;
   border: none;
 }
@@ -122,7 +123,7 @@ input, button, textarea, select {
 .pane-content {
   padding-top: 20px;
   width: 100%;
-  max-width: 720px;
+  max-width: 960px;
   margin: 0 auto;
 }
 

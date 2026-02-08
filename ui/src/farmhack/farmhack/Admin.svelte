@@ -490,7 +490,7 @@
 
     .admin-section-desc p {
         margin: 0;
-        color: #666;
+        color: var(--muted-text-color);
     }
 
     .admin-section-right {

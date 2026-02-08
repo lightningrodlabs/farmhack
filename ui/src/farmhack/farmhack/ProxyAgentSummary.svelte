@@ -91,7 +91,7 @@ async function deleteProxyAgent() {
 
     .location, .bio {
         font-size: 0.9em;
-        color: #666;
+        color: var(--muted-text-color);
     }
 
     .actions {

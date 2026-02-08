@@ -178,19 +178,19 @@
     cursor: default;
   }
   .location {
-    color: #666;
+    color: var(--muted-text-color);
     font-size: 13px;
     margin-top: 4px;
   }
   .bio {
-    color: #555;
+    color: var(--muted-text-color);
     margin-bottom: 24px;
     line-height: 1.5;
   }
   .section-title {
     font-size: 15px;
     margin: 0 0 12px 0;
-    color: #333;
+    color: var(--dark-text-color);
   }
   .tools-list {
     display: flex;

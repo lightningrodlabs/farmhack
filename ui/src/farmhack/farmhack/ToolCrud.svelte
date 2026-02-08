@@ -5,6 +5,7 @@
   import type { ActionHash, AgentPubKey } from "@holochain/client";
   import { encodeHashToBase64, decodeHashFromBase64, type EntryHash } from "@holochain/client";
   import { get } from "svelte/store";
+  import { toPromise } from "@holochain-open-dev/stores";
   import '@holochain-open-dev/file-storage/dist/elements/upload-files.js';
   import type { UploadFiles } from '@holochain-open-dev/file-storage/dist/elements/upload-files.js';
   import "@holochain-open-dev/profiles/dist/elements/search-agent.js";
@@ -52,6 +53,25 @@
     const b64 = encodeHashToBase64(hash);
     return allAuthors.some(a => encodeHashToBase64(a.hash) === b64);
   }
+
+  // Pre-load current user as author for new tools
+  if (!tool) {
+    (async () => {
+      const pubKey = store.myPubKey;
+      let name = encodeHashToBase64(pubKey).slice(0, 8);
+      try {
+        const myProfile = await toPromise(store.profilesStore.myProfile);
+        if (myProfile) name = myProfile.entry.nickname;
+      } catch {}
+      if (!authorAlreadyAdded(pubKey)) {
+        pendingAuthors = [{ agent: { type: "Agent", hash: pubKey }, name }];
+      }
+    })();
+  }
+
+  // Validation for required fields
+  $: hasAuthors = existingAuthors.length > 0 || pendingAuthors.length > 0;
+  $: canSave = title.trim() && description.trim() && hasAuthors;
 
   function addAgentAuthor(pubKey: AgentPubKey) {
     if (authorAlreadyAdded(pubKey)) return;
@@ -147,7 +167,7 @@
   }
 
   async function handleSave() {
-    if (!title.trim()) return;
+    if (!canSave) return;
     saving = true;
     try {
       const tags = tagsStr.split(",").map(t => t.trim()).filter(t => t);
@@ -238,7 +258,7 @@
         <div class="two-col">
           <div class="col-fields">
             <label>
-              Title
+              Title <span class="required">*</span>
               <input type="text" bind:value={title} placeholder="Tool name" />
             </label>
 
@@ -283,12 +303,12 @@
         </div>
 
         <label class="expand">
-          Description
+          Description <span class="required">*</span>
           <textarea bind:value={description} placeholder="A short description of the tool concept..."></textarea>
         </label>
 
         <div class="authors-section">
-          <div class="field-label">Authors</div>
+          <div class="field-label">Authors <span class="required">*</span></div>
           <div class="authors-list">
             {#each existingAuthors as a, i}
               <div class="author-item">
@@ -462,7 +482,7 @@
 
     <div class="modal-footer">
       <button on:click={handleCancel} disabled={saving}>Cancel</button>
-      <button class="primary" on:click={handleSave} disabled={saving || !title.trim()}>
+      <button class="primary" on:click={handleSave} disabled={saving || !canSave}>
         {saving ? "Saving..." : (tool ? "Update" : "Create")}
       </button>
     </div>
@@ -522,12 +542,12 @@
     background: none;
     cursor: pointer;
     font-size: 13px;
-    color: #666;
+    color: var(--muted-text-color);
   }
   .section-tabs button.active {
     border-color: #ddd;
     border-bottom-color: white;
-    color: #333;
+    color: var(--dark-text-color);
     font-weight: 500;
     background: white;
   }
@@ -733,5 +753,9 @@
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 13px;
+  }
+  .required {
+    color: #c00;
+    font-weight: 600;
   }
 </style>
