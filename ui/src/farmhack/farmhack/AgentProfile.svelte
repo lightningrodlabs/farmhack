@@ -3,7 +3,8 @@
   import { getStoreContext } from "../../contexts";
   import type { ActionHash } from "@holochain/client";
   import { encodeHashToBase64 } from "@holochain/client";
-  import { toolAuthors } from "./types";
+  import { toolAuthors, agentToLinkable } from "./types";
+  import { toPromise } from "@holochain-open-dev/stores";
   import ProxyAgentAvatar from "./ProxyAgentAvatar.svelte";
   import ToolSummary from "./ToolSummary.svelte";
 
@@ -21,6 +22,47 @@
     if (t.record.entry.trashed) return false;
     return toolAuthors(t).some(a => encodeHashToBase64(a.agent.hash) === encodeHashToBase64(profileHash));
   });
+
+  let claiming = false;
+
+  async function claimAgent() {
+    claiming = true;
+    try {
+      let myNickname = "";
+      try {
+        const myProfile = await toPromise(store.profilesStore.myProfile);
+        if (myProfile) myNickname = myProfile.entry.nickname;
+      } catch {}
+
+      const myLinkable = agentToLinkable(store.myPubKey);
+      const proxyHashB64 = encodeHashToBase64(profileHash);
+
+      for (const tool of authoredTools) {
+        const proxyAuthor = toolAuthors(tool).find(
+          a => encodeHashToBase64(a.agent.hash) === proxyHashB64
+        );
+        if (!proxyAuthor) continue;
+
+        await store.deleteRelations([proxyAuthor.relationHash]);
+        await store.createRelations([{
+          src: tool.original_hash,
+          dst: myLinkable,
+          content: {
+            path: "tool.author",
+            data: JSON.stringify({ name: myNickname, type: "Agent" }),
+          },
+        }]);
+      }
+
+      await store.deleteProxyAgent(profileHash);
+      await store.fetchTools();
+      await store.fetchProxyAgents();
+      dispatch('close');
+    } catch (err) {
+      console.error("Error claiming proxy agent:", err);
+    }
+    claiming = false;
+  }
 </script>
 
 <div class="tool-details">
@@ -41,6 +83,9 @@
           {#if entry.location}
             <div class="location">{entry.location}</div>
           {/if}
+          <button class="claim-btn" on:click={claimAgent} disabled={claiming}>
+            {claiming ? "Claiming..." : "Claim as me"}
+          </button>
         </div>
       </div>
 
@@ -106,6 +151,23 @@
   }
   .profile-info h2 {
     margin: 0;
+  }
+  .claim-btn {
+    margin-top: 8px;
+    padding: 4px 12px;
+    border: 1px solid #1565c0;
+    border-radius: 4px;
+    background: #e3f2fd;
+    color: #1565c0;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .claim-btn:hover {
+    background: #bbdefb;
+  }
+  .claim-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
   }
   .location {
     color: #666;
