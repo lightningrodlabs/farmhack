@@ -3,10 +3,12 @@
   import { getStoreContext } from "../../contexts";
   import type { ActionHash } from "@holochain/client";
   import { encodeHashToBase64 } from "@holochain/client";
-  import { toolNotes, toolTags, toolAuthor, type Info, type Tool, type Note } from "./types";
+  import { toolNotes, toolTags, toolAuthor, toolFiles, type Info, type Tool, type Note } from "./types";
   import { marked } from "marked";
   import ShowFile from "./ShowFile.svelte";
+  import ShowAttachment from "./ShowAttachment.svelte";
   import NoteCrud from "./NoteCrud.svelte";
+  import ToolCrud from "./ToolCrud.svelte";
 
   export let toolHash: ActionHash;
 
@@ -17,13 +19,29 @@
   let notes: Array<Info<Note>> = [];
   let openSection = "concept";
   let expandedImage: number | null = null;
+  let toolCrudRef: ToolCrud;
 
-  $: tool = store.getTool(toolHash);
+  function handleEdit() {
+    if (tool) {
+      toolCrudRef.open(tool);
+    }
+  }
+
+  async function handleEditSaved() {
+    await store.fetchTools();
+  }
+
+  // Subscribe to the tools store so this re-evaluates when tools are refreshed
+  const toolsStore = store.tools;
+  $: tool = ($toolsStore, store.getTool(toolHash));
   $: entry = tool?.record.entry;
   $: tags = tool ? toolTags(tool) : [];
   $: noteHashes = tool ? toolNotes(tool) : [];
   $: author = tool ? toolAuthor(tool) : undefined;
   $: createdAt = tool ? new Date(tool.record.action.timestamp) : null;
+  $: docsFiles = tool ? toolFiles(tool, "docs") : [];
+  $: manualFiles = tool ? toolFiles(tool, "manual") : [];
+  $: skillsFiles = tool ? toolFiles(tool, "skills") : [];
 
   // Configure marked to open links in new tabs
   const renderer = new marked.Renderer();
@@ -81,7 +99,10 @@
     <div style="padding: 16px; overflow: auto; flex: 1;">
       <!-- Title and metadata -->
       <div style="margin-bottom: 16px;">
-        <h2 style="margin: 0 0 8px 0;">{entry.title}</h2>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <h2 style="margin: 0; flex: 1;">{entry.title}</h2>
+          <button class="edit-btn" on:click={handleEdit}>Edit</button>
+        </div>
         <div class="meta-row">
           {#if author}
             <span class="meta-item">By <button class="author-link" on:click={() => store.openProfile(author.hash)}>{author.name}</button></span>
@@ -132,7 +153,7 @@
       </div>
 
       <!-- Documentation Section -->
-      {#if entry.wiki || entry.video_url || (entry.images && entry.images.length > 0)}
+      {#if entry.wiki || entry.video_url || (entry.images && entry.images.length > 0) || docsFiles.length > 0}
         <div class="accordion-section">
           <button class="accordion-header docs" on:click={() => openSection = openSection === 'docs' ? '' : 'docs'}>
             Documentation
@@ -182,13 +203,24 @@
               {#if entry.wiki}
                 <div class="wiki-content">{@html renderMarkdown(entry.wiki)}</div>
               {/if}
+
+              {#if docsFiles.length > 0}
+                <div class="attached-files">
+                  <h4>Attached files</h4>
+                  <div class="file-list">
+                    {#each docsFiles as af}
+                      <ShowAttachment fileHash={af.fileHash} name={af.name} fileType={af.file_type} />
+                    {/each}
+                  </div>
+                </div>
+              {/if}
             </div>
           {/if}
         </div>
       {/if}
 
       <!-- User Manual Section -->
-      {#if entry.wiki2}
+      {#if entry.wiki2 || manualFiles.length > 0}
         <div class="accordion-section">
           <button class="accordion-header docs" on:click={() => openSection = openSection === 'manual' ? '' : 'manual'}>
             User Manual
@@ -196,14 +228,27 @@
           </button>
           {#if openSection === 'manual'}
             <div class="accordion-body">
-              <div class="wiki-content">{@html renderMarkdown(entry.wiki2)}</div>
+              {#if entry.wiki2}
+                <div class="wiki-content">{@html renderMarkdown(entry.wiki2)}</div>
+              {/if}
+
+              {#if manualFiles.length > 0}
+                <div class="attached-files">
+                  <h4>Attached files</h4>
+                  <div class="file-list">
+                    {#each manualFiles as af}
+                      <ShowAttachment fileHash={af.fileHash} name={af.name} fileType={af.file_type} />
+                    {/each}
+                  </div>
+                </div>
+              {/if}
             </div>
           {/if}
         </div>
       {/if}
 
       <!-- Skills Section -->
-      {#if entry.wiki3}
+      {#if entry.wiki3 || skillsFiles.length > 0}
         <div class="accordion-section">
           <button class="accordion-header docs" on:click={() => openSection = openSection === 'skills' ? '' : 'skills'}>
             Skills
@@ -211,7 +256,20 @@
           </button>
           {#if openSection === 'skills'}
             <div class="accordion-body">
-              <div class="wiki-content">{@html renderMarkdown(entry.wiki3)}</div>
+              {#if entry.wiki3}
+                <div class="wiki-content">{@html renderMarkdown(entry.wiki3)}</div>
+              {/if}
+
+              {#if skillsFiles.length > 0}
+                <div class="attached-files">
+                  <h4>Attached files</h4>
+                  <div class="file-list">
+                    {#each skillsFiles as af}
+                      <ShowAttachment fileHash={af.fileHash} name={af.name} fileType={af.file_type} />
+                    {/each}
+                  </div>
+                </div>
+              {/if}
             </div>
           {/if}
         </div>
@@ -254,6 +312,8 @@
   {#if showNoteCreate}
     <NoteCrud {toolHash} on:save={handleNoteCreated} on:cancel={() => showNoteCreate = false} />
   {/if}
+
+  <ToolCrud bind:this={toolCrudRef} {tool} showModal={false} on:save={handleEditSaved} />
 </div>
 
 <style>
@@ -305,6 +365,19 @@
   }
   .author-link:hover {
     text-decoration: underline;
+  }
+  .edit-btn {
+    padding: 4px 14px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 13px;
+    color: #555;
+  }
+  .edit-btn:hover {
+    background: #f5f5f5;
+    border-color: #bbb;
   }
   .status-badge {
     font-size: 12px;
@@ -411,5 +484,21 @@
   .gallery-expanded :global(img) {
     width: 100%;
     height: auto;
+  }
+  .attached-files {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #eee;
+  }
+  .attached-files h4 {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #555;
+  }
+  .file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
 </style>

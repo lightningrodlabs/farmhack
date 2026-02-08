@@ -194,6 +194,31 @@ export const toolAuthor = (tool: Info<Tool>): { hash: ActionHash, name: string }
   return { hash: rel.relation.dst, name: rel.relation.content.data };
 }
 
+export interface FileAttachment {
+  fileHash: EntryHash;
+  relationHash: ActionHash;
+  name: string;
+  file_type: string;
+  size: number;
+}
+
+export const toolFiles = (tool: Info<Tool>, section: string): Array<FileAttachment> => {
+  const path = `tool.file.${section}`;
+  return tool.relations
+    .filter(r => r.relation.content.path === path)
+    .map(r => {
+      let meta = { name: "File", file_type: "application/octet-stream", size: 0 };
+      try { meta = { ...meta, ...JSON.parse(r.relation.content.data) }; } catch {}
+      return {
+        fileHash: r.relation.dst as EntryHash,
+        relationHash: r.create_link_hash,
+        name: meta.name,
+        file_type: meta.file_type,
+        size: meta.size,
+      };
+    });
+}
+
 export enum DetailsType {
   Tool = 0,
   Profile,

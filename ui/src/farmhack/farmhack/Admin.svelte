@@ -104,18 +104,28 @@
             entry.images_data = serializedImages;
             delete entry.images;
         }
+        const serializedRelations = [];
+        for (const ri of info.relations) {
+            const rel: any = {
+                timestamp: ri.timestamp,
+                src: encodeHashToBase64(ri.relation.src),
+                dst: encodeHashToBase64(ri.relation.dst),
+                content: ri.relation.content
+            };
+            // Serialize file data for file attachment relations
+            if (ri.relation.content.path.startsWith("tool.file.")) {
+                const fileSerialized = await serializeFile(ri.relation.dst as EntryHash);
+                if (fileSerialized) {
+                    rel.file_data = fileSerialized.data;
+                    rel.file_info = fileSerialized.file;
+                }
+            }
+            serializedRelations.push(rel);
+        }
         const obj = {
             original_hash: encodeHashToBase64(info.original_hash),
             entry,
-            relations: info.relations.map(ri => {
-                const rel = {
-                    timestamp: ri.timestamp,
-                    src: encodeHashToBase64(ri.relation.src),
-                    dst: encodeHashToBase64(ri.relation.dst),
-                    content: ri.relation.content
-                };
-                return rel;
-            })
+            relations: serializedRelations
         };
         return obj;
     }
@@ -254,6 +264,24 @@
                     // Create relations for this tool
                     if (t.relations) {
                         for (const rel of t.relations) {
+                            // Handle file-bearing relations (e.g. tool.file.manual)
+                            if (rel.file_data && rel.file_info) {
+                                try {
+                                    const file = new File([base64ToUint8Array(rel.file_data)], rel.file_info.name, {
+                                        lastModified: rel.file_info.last_modified,
+                                        type: rel.file_info.file_type,
+                                    });
+                                    const fileHash = await store.fileStorageClient.uploadFile(file);
+                                    await store.createRelations([{
+                                        src: actionHash,
+                                        dst: fileHash,
+                                        content: rel.content
+                                    }]);
+                                } catch (relErr) {
+                                    console.warn(`  Warning: failed to upload/create file relation for ${e.title}:`, relErr);
+                                }
+                                continue;
+                            }
                             const dst = hashMap[rel.dst];
                             if (dst) {
                                 try {

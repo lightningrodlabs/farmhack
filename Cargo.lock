@@ -69,9 +69,9 @@ checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "cc"
-version = "1.2.54"
+version = "1.2.55"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6354c81bbfd62d9cfa9cb3c773c2b7b2a3a482d569de977fd0e961f6e7c00583"
+checksum = "47b26a0954ae34af09b50f0de26458fa95369a0d478d8236d3f93082b219bd29"
 dependencies = [
  "find-msvc-tools",
  "shlex",
@@ -283,9 +283,9 @@ dependencies = [
 
 [[package]]
 name = "find-msvc-tools"
-version = "0.1.8"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8591b0bcc8a98a64310a2fae1bb3e9b8564dd10e381e6e28010fde8e8e8568db"
+checksum = "5baebc0774151f905a1a2cc41989300b1e6fbb29aff0ceffa1064fdd3088d582"
 
 [[package]]
 name = "fnv"
@@ -413,7 +413,7 @@ checksum = "841d1cc9bed7f9236f321df977030373f4a4163ae1a7dbfe1a51a2c1a51d9100"
 [[package]]
 name = "hc_zome_file_storage_coordinator"
 version = "0.4.0"
-source = "git+https://github.com/holochain-open-dev/file-storage?branch=main-0.6#27f215945675af82db3ee727d7b9fe91e1589824"
+source = "git+https://github.com/holochain-open-dev/file-storage?branch=main-0.6#5bd7b171956c06671b201a0050c7e737719633db"
 dependencies = [
  "hc_zome_file_storage_integrity",
  "hdk",
@@ -423,7 +423,7 @@ dependencies = [
 [[package]]
 name = "hc_zome_file_storage_integrity"
 version = "0.4.0"
-source = "git+https://github.com/holochain-open-dev/file-storage?branch=main-0.6#27f215945675af82db3ee727d7b9fe91e1589824"
+source = "git+https://github.com/holochain-open-dev/file-storage?branch=main-0.6#5bd7b171956c06671b201a0050c7e737719633db"
 dependencies = [
  "hdi",
  "holochain_serialized_bytes",
@@ -433,7 +433,7 @@ dependencies = [
 [[package]]
 name = "hc_zome_profiles_coordinator"
 version = "0.4.0"
-source = "git+https://github.com/holochain-open-dev/profiles?branch=main-0.6#050c75cb79291915a7de10348f04aa780bb5a65c"
+source = "git+https://github.com/holochain-open-dev/profiles?branch=main-0.6#2d41fd0b6831c86d270b3deaa8bb52828527ff8f"
 dependencies = [
  "derive_more 0.99.20",
  "hc_zome_profiles_integrity",
@@ -445,7 +445,7 @@ dependencies = [
 [[package]]
 name = "hc_zome_profiles_integrity"
 version = "0.4.0"
-source = "git+https://github.com/holochain-open-dev/profiles?branch=main-0.6#050c75cb79291915a7de10348f04aa780bb5a65c"
+source = "git+https://github.com/holochain-open-dev/profiles?branch=main-0.6#2d41fd0b6831c86d270b3deaa8bb52828527ff8f"
 dependencies = [
  "derive_more 0.99.20",
  "hdi",
@@ -669,9 +669,9 @@ dependencies = [
 
 [[package]]
 name = "iana-time-zone"
-version = "0.1.64"
+version = "0.1.65"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33e57f83510bb73707521ebaffa789ec8caf86f9657cad665b092b581d40e9fb"
+checksum = "e31bc9ad994ba00e440a8aa5c9ef0ec67d5cb5e5cb0cc7f8b744a35b389cc470"
 dependencies = [
  "android_system_properties",
  "core-foundation-sys",
@@ -737,9 +737,9 @@ checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
 name = "memchr"
-version = "2.7.6"
+version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
+checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
 
 [[package]]
 name = "must_future"
@@ -966,9 +966,9 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 
 [[package]]
 name = "slab"
-version = "0.4.11"
+version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7a2ae44ef20feb57a68b23d846850f861394c2e02dc425a50098ae8c90267589"
+checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 
 [[package]]
 name = "strsim"

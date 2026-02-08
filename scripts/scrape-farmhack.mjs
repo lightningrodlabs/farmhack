@@ -106,25 +106,29 @@ function extractVideoEmbedUrl(rawUrl) {
   return videoUrl;
 }
 
-async function fetchImageAsBase64(url) {
+async function fetchFileAsBase64(url, defaultName = "file", defaultType = "application/octet-stream") {
   try {
     const resp = await fetch(url);
     if (!resp.ok) return null;
     const buf = Buffer.from(await resp.arrayBuffer());
-    const contentType = resp.headers.get("content-type") || "image/jpeg";
+    const contentType = resp.headers.get("content-type") || defaultType;
     return {
       data: buf.toString("base64"),
       file: {
-        name: decodeURIComponent(url.split("/").pop().split("?")[0] || "image.jpg"),
+        name: decodeURIComponent(url.split("/").pop().split("?")[0] || defaultName),
         size: buf.length,
         file_type: contentType,
         last_modified: Date.now(),
       },
     };
   } catch (e) {
-    console.warn(`  Warning: could not fetch image ${url}: ${e.message}`);
+    console.warn(`  Warning: could not fetch file ${url}: ${e.message}`);
     return null;
   }
+}
+
+async function fetchImageAsBase64(url) {
+  return fetchFileAsBase64(url, "image.jpg", "image/jpeg");
 }
 
 let hashCounter = 0;
@@ -295,6 +299,24 @@ async function scrapeTool(url) {
     mainImage = await fetchImageAsBase64(imgUrl);
   }
 
+  // Gallery images from documentation section (beyond the main image)
+  const galleryImages = [];
+  const mainImgFullSize = firstImg ? toFullSizeImageUrl(firstImg) : null;
+  const seenImgPaths = new Set();
+  if (mainImgFullSize) seenImgPaths.add(mainImgFullSize);
+
+  const docImgEls = $("#farmhack-tool-documentation img, .field--name-field-images img");
+  for (const el of docImgEls.toArray()) {
+    const src = $(el).attr("src");
+    if (!src) continue;
+    const fullSize = toFullSizeImageUrl(src);
+    if (seenImgPaths.has(fullSize)) continue;
+    seenImgPaths.add(fullSize);
+    const imgUrl = fullSize.startsWith("http") ? fullSize : `${BASE_URL}${fullSize}`;
+    const imgData = await fetchImageAsBase64(imgUrl);
+    if (imgData) galleryImages.push(imgData);
+  }
+
   // Documentation section - convert to markdown
   let wiki = "";
   const docsSection = $("#farmhack-tool-documentation .accordion-body");
@@ -327,6 +349,24 @@ async function scrapeTool(url) {
     const wiki2Field = manualSection.find(".field--name-field-wiki2");
     const wiki2Html = wiki2Field.length ? wiki2Field.html() : manualSection.html();
     wiki2 = htmlToMarkdown(wiki2Html || "");
+  }
+
+  // Attached files from User Manual section (PDFs, documents)
+  // Drupal renders both field_user_manual_files and field_documentation_files here
+  const attachedFiles = [];
+  const fileEls = manualSection.find('a[href*="/sites/default/files/"]').toArray();
+  for (const el of fileEls) {
+    const href = $(el).attr("href");
+    if (!href) continue;
+    // Skip image files - those are handled separately
+    if (/\.(jpg|jpeg|png|gif|webp)$/i.test(href)) continue;
+    const fileUrl = href.startsWith("http") ? href : `${BASE_URL}${href}`;
+    const linkText = $(el).text().trim();
+    console.log(`    Attached file: ${linkText || href}`);
+    const fileData = await fetchFileAsBase64(fileUrl, linkText || undefined);
+    if (fileData) {
+      attachedFiles.push(fileData);
+    }
   }
 
   // Skills section - convert to markdown
@@ -403,6 +443,8 @@ async function scrapeTool(url) {
     tags,
     author,
     mainImage,
+    galleryImages,
+    attachedFiles,
     wiki,
     wiki2,
     wiki3,
@@ -499,13 +541,32 @@ function buildImportData(tools) {
       wiki2: t.wiki2,
       wiki3: t.wiki3,
       video_url: t.videoUrl || null,
-      images_data: [],
+      images_data: t.galleryImages || [],
     };
 
     if (t.mainImage) {
       entry.pic_data = t.mainImage.data;
       entry.pic_hash = placeholderHash();
       entry.pic_file = t.mainImage.file;
+    }
+
+    // File attachment relations
+    for (const af of (t.attachedFiles || [])) {
+      relations.push({
+        timestamp: Date.now() * 1000,
+        src: t.hash,
+        dst: t.hash, // placeholder - replaced during import with actual file hash
+        content: {
+          path: "tool.file.manual",
+          data: JSON.stringify({
+            name: af.file.name,
+            file_type: af.file.file_type,
+            size: af.file.size,
+          }),
+        },
+        file_data: af.data,
+        file_info: af.file,
+      });
     }
 
     importTools.push({

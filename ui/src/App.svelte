@@ -11,6 +11,7 @@
   import Admin from "./farmhack/farmhack/Admin.svelte";
   import AllProxyAgents from "./farmhack/farmhack/AllProxyAgents.svelte";
   import AgentProfile from "./farmhack/farmhack/AgentProfile.svelte";
+  import "@holochain-open-dev/file-storage/dist/elements/file-storage-context.js";
 
   let cloneManagerStore: CloneManagerStore | undefined;
   let loading = true;
@@ -76,6 +77,7 @@
         <span>Loading...</span>
       </div>
     {:else if $store}
+      <file-storage-context client={$store.fileStorageClient}>
       <div class="pane">
         <div class="pane-header">
           <div class="header-content">
@@ -140,7 +142,7 @@
       {#if showCreateTool}
         <ToolCrud on:save={handleToolCreated} on:cancel={() => showCreateTool = false} />
       {/if}
-
+      </file-storage-context>
     {/if}
   {:else}
     {#if error}
