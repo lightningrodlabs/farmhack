@@ -113,8 +113,12 @@ export class FarmHackStore {
     this.openDetails(DetailsType.Tool, hash);
   }
 
-  openProfile(hash: ActionHash) {
-    this.openDetails(DetailsType.Profile, hash);
+  openFolk(hash: ActionHash) {
+    this.openDetails(DetailsType.Folk, hash);
+  }
+
+  openProxyAgentProfile(hash: ActionHash) {
+    this.openDetails(DetailsType.ProxyAgent, hash);
   }
 
   // ProxyAgent methods

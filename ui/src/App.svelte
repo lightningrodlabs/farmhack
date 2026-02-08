@@ -11,6 +11,7 @@
   import Admin from "./farmhack/farmhack/Admin.svelte";
   import AllProxyAgents from "./farmhack/farmhack/AllProxyAgents.svelte";
   import AgentProfile from "./farmhack/farmhack/AgentProfile.svelte";
+  import Folk from "./farmhack/farmhack/Folk.svelte";
   import MyProfile from "./farmhack/farmhack/MyProfile.svelte";
   import "@shoelace-style/shoelace/dist/themes/light.css";
   import "@holochain-open-dev/profiles/dist/elements/profiles-context.js";
@@ -132,7 +133,9 @@
         {#if topDetail}
           {#if topDetail.type === DetailsType.Tool}
             <ToolDetail toolHash={topDetail.hash} on:close={() => $store.closeDetails()} />
-          {:else if topDetail.type === DetailsType.Profile}
+          {:else if topDetail.type === DetailsType.Folk}
+            <Folk agentPubKey={topDetail.hash} on:close={() => $store.closeDetails()} />
+          {:else if topDetail.type === DetailsType.ProxyAgent}
             <AgentProfile profileHash={topDetail.hash} on:close={() => $store.closeDetails()} />
           {/if}
         {/if}

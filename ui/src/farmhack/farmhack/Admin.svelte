@@ -5,7 +5,7 @@
     import type { CloneManagerStore } from '../../stores/clone-manager-store';
     import { createEventDispatcher, getContext, onMount } from "svelte";
     import type { Info, Tool, Note, ProxyAgent } from "./types";
-    import { APP_VERSION } from "./types";
+    import { APP_VERSION, agentToLinkable } from "./types";
     import { get } from "svelte/store";
     import { toPromise } from "@holochain-open-dev/stores";
 
@@ -198,9 +198,17 @@
 
     const doImport = async (data: any) => {
         const hashMap: Record<string, ActionHash> = {};
+        const claimedHashes = new Set<string>(); // placeholder hashes that map to real agent
         const deferredRelations: Array<{src: string, rel: any}> = [];
 
-        // Import proxy agents first
+        // Get current user's profile nickname for auto-claim
+        let myNickname = "";
+        try {
+            const myProfile = await toPromise(store.profilesStore.myProfile);
+            if (myProfile) myNickname = myProfile.entry.nickname.toLowerCase().trim();
+        } catch {}
+
+        // Import proxy agents first (auto-claim matching ones)
         if (data.proxyAgents) {
             importStatus = "Importing proxy agents...";
             for (let i = 0; i < data.proxyAgents.length; i++) {
@@ -208,6 +216,13 @@
                 importProgress = `${i + 1}/${data.proxyAgents.length}`;
                 try {
                     const e = p.entry;
+                    // Auto-claim: if proxy agent nickname matches current user, use real agent pubkey
+                    if (myNickname && e.nickname.toLowerCase().trim() === myNickname) {
+                        hashMap[p.original_hash] = agentToLinkable(store.myPubKey);
+                        claimedHashes.add(p.original_hash);
+                        console.log(`Auto-claimed proxy agent "${e.nickname}" as current user`);
+                        continue;
+                    }
                     let pic = await uploadImportedFile(e);
                     const actionHash = await store.createProxyAgent(e.nickname, e.bio, e.location, pic);
                     hashMap[p.original_hash] = actionHash;
@@ -285,10 +300,17 @@
                             const dst = hashMap[rel.dst];
                             if (dst) {
                                 try {
+                                    // For tool.author relations, use JSON format with agent type
+                                    let content = rel.content;
+                                    if (rel.content.path === "tool.author") {
+                                        const agentType = claimedHashes.has(rel.dst) ? "Agent" : "ProxyAgent";
+                                        const name = rel.content.data || "";
+                                        content = { path: "tool.author", data: JSON.stringify({ name, type: agentType }) };
+                                    }
                                     await store.createRelations([{
                                         src: actionHash,
                                         dst,
-                                        content: rel.content
+                                        content
                                     }]);
                                 } catch (relErr) {
                                     console.warn(`  Warning: failed to create relation for ${e.title}:`, relErr);
@@ -315,10 +337,16 @@
                 const dstHash = hashMap[rel.dst];
                 if (srcHash && dstHash) {
                     try {
+                        let content = rel.content;
+                        if (rel.content.path === "tool.author") {
+                            const agentType = claimedHashes.has(rel.dst) ? "Agent" : "ProxyAgent";
+                            const name = rel.content.data || "";
+                            content = { path: "tool.author", data: JSON.stringify({ name, type: agentType }) };
+                        }
                         await store.createRelations([{
                             src: srcHash,
                             dst: dstHash,
-                            content: rel.content
+                            content
                         }]);
                     } catch (err) {
                         console.warn(`  Warning: failed deferred relation:`, err);

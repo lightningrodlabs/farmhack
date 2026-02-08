@@ -4,6 +4,7 @@
     import { storeContext } from '../../contexts';
     import type { FarmHackStore } from '../../stores/farmhack-store';
     import { getContext } from "svelte";
+    import { DetailsType } from "./types";
     import type { AsyncStatus } from "@holochain-open-dev/stores";
     import type { Profile } from "@holochain-open-dev/profiles";
 
@@ -25,7 +26,16 @@
     }
 </script>
 
-<div class="avatar-{namePosition}">
+<div class="avatar-{namePosition}"
+    class:clickable={profile}
+    on:click={(e) => {
+        if (profile) {
+            store.openDetails(DetailsType.Folk, agentPubKey);
+            e.stopPropagation();
+        }
+    }}
+    on:keypress={() => {}}
+>
     {#if showAvatar}
         <agent-avatar disable-tooltip={true} disable-copy={true} size={size} agent-pub-key="{encodeHashToBase64(agentPubKey)}"></agent-avatar>
     {/if}
@@ -52,6 +62,10 @@
 
     .avatar-row agent-avatar {
         margin-right: 0.5em;
+    }
+
+    .clickable {
+        cursor: pointer;
     }
 
     .nickname {

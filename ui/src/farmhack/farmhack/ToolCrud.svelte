@@ -1,13 +1,16 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { getStoreContext } from "../../contexts";
-  import { ToolStatuses, toolFiles, type Tool, type Info, type FileAttachment } from "./types";
-  import type { ActionHash } from "@holochain/client";
-  import { encodeHashToBase64, type EntryHash } from "@holochain/client";
+  import { ToolStatuses, toolFiles, toolAuthors, agentToLinkable, type Tool, type Info, type FileAttachment, type AnyAgent, type AuthorInfo } from "./types";
+  import type { ActionHash, AgentPubKey } from "@holochain/client";
+  import { encodeHashToBase64, decodeHashFromBase64, type EntryHash } from "@holochain/client";
+  import { get } from "svelte/store";
   import '@holochain-open-dev/file-storage/dist/elements/upload-files.js';
   import type { UploadFiles } from '@holochain-open-dev/file-storage/dist/elements/upload-files.js';
+  import "@holochain-open-dev/profiles/dist/elements/search-agent.js";
   import ShowFile from "./ShowFile.svelte";
   import ShowAttachment from "./ShowAttachment.svelte";
+  import AnyAvatar from "./AnyAvatar.svelte";
 
   export let tool: Info<Tool> | undefined = undefined;
 
@@ -36,6 +39,48 @@
   let existingFiles: Record<string, FileAttachment[]> = { docs: [], manual: [], skills: [] };
   let pendingFiles: Record<string, PendingFile[]> = { docs: [], manual: [], skills: [] };
   let deletedRelations: ActionHash[] = [];
+
+  // Author management
+  let existingAuthors: AuthorInfo[] = [];
+  let pendingAuthors: Array<{ agent: AnyAgent; name: string }> = [];
+  let deletedAuthorRelations: ActionHash[] = [];
+
+  $: proxyAgents = store.proxyAgents;
+  $: allAuthors = [...existingAuthors.map(a => a.agent), ...pendingAuthors.map(a => a.agent)];
+
+  function authorAlreadyAdded(hash: Uint8Array): boolean {
+    const b64 = encodeHashToBase64(hash);
+    return allAuthors.some(a => encodeHashToBase64(a.hash) === b64);
+  }
+
+  function addAgentAuthor(pubKey: AgentPubKey) {
+    if (authorAlreadyAdded(pubKey)) return;
+    const profile = store.profilesStore.profiles.get(pubKey);
+    let name = encodeHashToBase64(pubKey).slice(0, 8);
+    // Try to get nickname synchronously from the store
+    try {
+      const val = get(profile);
+      if (val.status === "complete" && val.value) name = val.value.entry.nickname;
+    } catch {}
+    pendingAuthors = [...pendingAuthors, { agent: { type: "Agent", hash: pubKey }, name }];
+  }
+
+  function addProxyAuthor(hash: ActionHash) {
+    if (authorAlreadyAdded(hash)) return;
+    const pa = store.getProxyAgent(hash);
+    const name = pa ? pa.record.entry.nickname : "unknown";
+    pendingAuthors = [...pendingAuthors, { agent: { type: "ProxyAgent", hash }, name }];
+  }
+
+  function removeExistingAuthor(index: number) {
+    const author = existingAuthors[index];
+    deletedAuthorRelations = [...deletedAuthorRelations, author.relationHash];
+    existingAuthors = existingAuthors.filter((_, i) => i !== index);
+  }
+
+  function removePendingAuthor(index: number) {
+    pendingAuthors = pendingAuthors.filter((_, i) => i !== index);
+  }
 
   export function open(toolData: Info<Tool>) {
     tool = toolData;
@@ -67,6 +112,10 @@
     };
     pendingFiles = { docs: [], manual: [], skills: [] };
     deletedRelations = [];
+    // Load existing authors
+    existingAuthors = toolAuthors(toolData);
+    pendingAuthors = [];
+    deletedAuthorRelations = [];
     activeSection = "basic";
     showModal = true;
   }
@@ -125,9 +174,23 @@
         toolHash = await store.createTool(toolData);
       }
 
-      // Delete removed file attachment relations
-      if (deletedRelations.length > 0) {
-        await store.deleteRelations(deletedRelations);
+      // Delete removed relations (files + authors)
+      const allDeleted = [...deletedRelations, ...deletedAuthorRelations];
+      if (allDeleted.length > 0) {
+        await store.deleteRelations(allDeleted);
+      }
+
+      // Create new author relations
+      for (const pa of pendingAuthors) {
+        const dst = pa.agent.type === "Agent" ? agentToLinkable(pa.agent.hash) : pa.agent.hash;
+        await store.createRelations([{
+          src: toolHash,
+          dst,
+          content: {
+            path: "tool.author",
+            data: JSON.stringify({ name: pa.name, type: pa.agent.type }),
+          },
+        }]);
       }
 
       // Create new file attachment relations
@@ -223,6 +286,45 @@
           Description
           <textarea bind:value={description} placeholder="A short description of the tool concept..."></textarea>
         </label>
+
+        <div class="authors-section">
+          <div class="field-label">Authors</div>
+          <div class="authors-list">
+            {#each existingAuthors as a, i}
+              <div class="author-item">
+                <AnyAvatar agent={a.agent} size={24} showNickname={true} />
+                <button class="file-remove-btn" on:click={() => removeExistingAuthor(i)}>x</button>
+              </div>
+            {/each}
+            {#each pendingAuthors as a, i}
+              <div class="author-item pending">
+                <AnyAvatar agent={a.agent} size={24} showNickname={true} />
+                <button class="file-remove-btn" on:click={() => removePendingAuthor(i)}>x</button>
+              </div>
+            {/each}
+          </div>
+          <div class="authors-add">
+            <search-agent
+              field-label="Add Agent"
+              include-myself={true}
+              clear-on-select={true}
+              on:agent-selected={(e) => addAgentAuthor(e.detail.agentPubKey)}
+            ></search-agent>
+            <select
+              on:change={(e) => {
+                if (e.target.value) {
+                  addProxyAuthor(decodeHashFromBase64(e.target.value));
+                  e.target.value = "";
+                }
+              }}
+            >
+              <option value="">Add Proxy Agent...</option>
+              {#each $proxyAgents.filter(p => !authorAlreadyAdded(p.original_hash)) as pa}
+                <option value={encodeHashToBase64(pa.original_hash)}>{pa.record.entry.nickname}</option>
+              {/each}
+            </select>
+          </div>
+        </div>
       {/if}
 
       {#if activeSection === "docs"}
@@ -594,5 +696,42 @@
     background: #fee;
     border-color: #c00;
     color: #c00;
+  }
+  .authors-section {
+    flex-shrink: 0;
+    margin-bottom: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #eee;
+  }
+  .authors-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .author-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .author-item.pending {
+    background: #e8f5e9;
+    border-color: #c8e6c9;
+  }
+  .authors-add {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .authors-add select {
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
   }
 </style>

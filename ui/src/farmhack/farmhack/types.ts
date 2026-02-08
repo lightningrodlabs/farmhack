@@ -188,10 +188,49 @@ export const toolTags = (tool: Info<Tool>): Array<string> => {
   return Object.keys(tagsMap).sort((a, b) => tagsMap[b] - tagsMap[a])
 }
 
-export const toolAuthor = (tool: Info<Tool>): { hash: ActionHash, name: string } | undefined => {
-  const rel = tool.relations.find(r => r.relation.content.path === "tool.author");
-  if (!rel) return undefined;
-  return { hash: rel.relation.dst, name: rel.relation.content.data };
+export interface AuthorInfo {
+  agent: AnyAgent;
+  name: string;
+  relationHash: ActionHash;
+}
+
+// AgentPubKey prefix: hCAk (base64 pos 3 = 'A')
+// EntryHash prefix:   hCEk (base64 pos 3 = 'E')
+// AnyLinkableHash deserialization doesn't handle AgentPubKey,
+// so we convert to EntryHash format for use in relation dst fields.
+function setCharAt(str: string, index: number, chr: string): string {
+  if (index > str.length - 1) return str;
+  return str.substring(0, index) + chr + str.substring(index + 1);
+}
+
+export function agentToLinkable(pubKey: AgentPubKey): Uint8Array {
+  return decodeHashFromBase64(setCharAt(encodeHashToBase64(pubKey), 3, 'E'));
+}
+
+export function linkableToAgent(hash: Uint8Array): AgentPubKey {
+  return decodeHashFromBase64(setCharAt(encodeHashToBase64(hash), 3, 'A')) as AgentPubKey;
+}
+
+export const toolAuthors = (tool: Info<Tool>): Array<AuthorInfo> => {
+  return tool.relations
+    .filter(r => r.relation.content.path === "tool.author")
+    .map(r => {
+      let name = r.relation.content.data;
+      let agentType: "Agent" | "ProxyAgent" = "ProxyAgent";
+      try {
+        const parsed = JSON.parse(r.relation.content.data);
+        name = parsed.name || name;
+        agentType = parsed.type || "ProxyAgent";
+      } catch {
+        // Old format: plain string name, assume ProxyAgent
+      }
+      const hash = agentType === "Agent" ? linkableToAgent(r.relation.dst) : r.relation.dst;
+      return {
+        agent: { type: agentType, hash } as AnyAgent,
+        name,
+        relationHash: r.create_link_hash,
+      };
+    });
 }
 
 export interface FileAttachment {
@@ -221,7 +260,8 @@ export const toolFiles = (tool: Info<Tool>, section: string): Array<FileAttachme
 
 export enum DetailsType {
   Tool = 0,
-  Profile,
+  Folk,
+  ProxyAgent,
 }
 
 export interface Details {

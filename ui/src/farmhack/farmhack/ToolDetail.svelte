@@ -3,10 +3,11 @@
   import { getStoreContext } from "../../contexts";
   import type { ActionHash } from "@holochain/client";
   import { encodeHashToBase64 } from "@holochain/client";
-  import { toolNotes, toolTags, toolAuthor, toolFiles, type Info, type Tool, type Note } from "./types";
+  import { toolNotes, toolTags, toolAuthors, toolFiles, type Info, type Tool, type Note } from "./types";
   import { marked } from "marked";
   import ShowFile from "./ShowFile.svelte";
   import ShowAttachment from "./ShowAttachment.svelte";
+  import AnyAvatar from "./AnyAvatar.svelte";
   import NoteCrud from "./NoteCrud.svelte";
   import ToolCrud from "./ToolCrud.svelte";
 
@@ -37,7 +38,7 @@
   $: entry = tool?.record.entry;
   $: tags = tool ? toolTags(tool) : [];
   $: noteHashes = tool ? toolNotes(tool) : [];
-  $: author = tool ? toolAuthor(tool) : undefined;
+  $: authors = tool ? toolAuthors(tool) : [];
   $: createdAt = tool ? new Date(tool.record.action.timestamp) : null;
   $: docsFiles = tool ? toolFiles(tool, "docs") : [];
   $: manualFiles = tool ? toolFiles(tool, "manual") : [];
@@ -104,8 +105,14 @@
           <button class="edit-btn" on:click={handleEdit}>Edit</button>
         </div>
         <div class="meta-row">
-          {#if author}
-            <span class="meta-item">By <button class="author-link" on:click={() => store.openProfile(author.hash)}>{author.name}</button></span>
+          {#if authors.length > 0}
+            <span class="meta-item" style="display: inline-flex; align-items: center; gap: 4px;">
+              By
+              {#each authors as a, i}
+                <AnyAvatar agent={a.agent} size={20} showAvatar={true} showNickname={true} />
+                {#if i < authors.length - 1}<span>,</span>{/if}
+              {/each}
+            </span>
           {/if}
           {#if createdAt}
             <span class="meta-item">{formatDate(createdAt)}</span>

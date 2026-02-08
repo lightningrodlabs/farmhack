@@ -3,7 +3,7 @@
     import { storeContext } from '../../contexts';
     import type { FarmHackStore } from '../../stores/farmhack-store';
     import { getContext } from "svelte";
-    import type { AnyAgent } from "./types";
+    import { DetailsType, type AnyAgent } from "./types";
     import Avatar from './Avatar.svelte';
     import ProxyAgentAvatar from "./ProxyAgentAvatar.svelte";
 
@@ -21,7 +21,13 @@
 {#if agent.type == "Agent"}
     <Avatar {size} {namePosition} {showAvatar} {showNickname} agentPubKey={agent.hash}></Avatar>
 {:else if agent.type == "ProxyAgent"}
-    <div class="avatar-{namePosition}">
+    <div class="avatar-{namePosition} clickable"
+        on:click={(e) => {
+            store.openDetails(DetailsType.ProxyAgent, agent.hash);
+            e.stopPropagation();
+        }}
+        on:keypress={() => {}}
+    >
         {#if showAvatar}
             {#if proxyAgent}
                 <span style="margin-right:5px">
@@ -62,6 +68,10 @@
     .avatar-row holo-identicon {
         margin-right: 0.5em;
         border-radius: 50%;
+    }
+
+    .clickable {
+        cursor: pointer;
     }
 
     .nickname {

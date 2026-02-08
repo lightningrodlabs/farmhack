@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getStoreContext } from "../../contexts";
-  import { toolAuthor, type Info, type Tool } from "./types";
+  import { toolAuthors, type Info, type Tool } from "./types";
   import { truncateText } from "./utils";
   import ShowFile from "./ShowFile.svelte";
 
@@ -8,7 +8,7 @@
   const store = getStoreContext();
 
   $: entry = tool.record.entry;
-  $: author = toolAuthor(tool);
+  $: authors = toolAuthors(tool);
   $: createdAt = new Date(tool.record.action.timestamp);
 </script>
 
@@ -29,7 +29,7 @@
       </div>
     </div>
     <div class="meta">
-      {#if author}<span>{author.name}</span>{/if}
+      {#if authors.length > 0}<span>{authors.map(a => a.name).join(", ")}</span>{/if}
       <span>{createdAt.toLocaleDateString()}</span>
     </div>
     <p style="margin: 4px 0; opacity: 0.7; font-size: 13px;">{truncateText(entry.description, 120)}</p>

@@ -1,25 +1,24 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { getStoreContext } from "../../contexts";
-  import type { ActionHash } from "@holochain/client";
+  import type { AgentPubKey } from "@holochain/client";
   import { encodeHashToBase64 } from "@holochain/client";
   import { toolAuthors } from "./types";
-  import ProxyAgentAvatar from "./ProxyAgentAvatar.svelte";
+  import Avatar from "./Avatar.svelte";
   import ToolSummary from "./ToolSummary.svelte";
 
-  export let profileHash: ActionHash;
+  export let agentPubKey: AgentPubKey;
 
   const store = getStoreContext();
   const dispatch = createEventDispatcher();
 
-  $: proxyAgent = store.getProxyAgent(profileHash);
-  $: entry = proxyAgent?.record.entry;
+  $: s = store.profilesStore.profiles.get(agentPubKey);
+  $: profile = $s.status === "complete" ? $s.value : undefined;
 
-  // Find tools authored by this agent
   const toolsStore = store.tools;
   $: authoredTools = $toolsStore.filter(t => {
     if (t.record.entry.trashed) return false;
-    return toolAuthors(t).some(a => encodeHashToBase64(a.agent.hash) === encodeHashToBase64(profileHash));
+    return toolAuthors(t).some(a => encodeHashToBase64(a.agent.hash) === encodeHashToBase64(agentPubKey));
   });
 </script>
 
@@ -28,24 +27,24 @@
     <nav class="breadcrumb">
       <button class="breadcrumb-link" on:click={() => dispatch('close')}>&#8592; Back</button>
       <span class="breadcrumb-sep">/</span>
-      <span class="breadcrumb-current">{entry?.nickname || "Profile"}</span>
+      <span class="breadcrumb-current">{profile?.entry.nickname || "Profile"}</span>
     </nav>
   </div>
 
-  {#if entry}
+  {#if profile}
     <div class="profile-body">
       <div class="profile-header">
-        <ProxyAgentAvatar size={80} proxyAgentHash={profileHash} />
+        <Avatar agentPubKey={agentPubKey} size={80} showNickname={false} />
         <div class="profile-info">
-          <h2>{entry.nickname}</h2>
-          {#if entry.location}
-            <div class="location">{entry.location}</div>
+          <h2>{profile.entry.nickname}</h2>
+          {#if profile.entry.fields.location}
+            <div class="location">{profile.entry.fields.location}</div>
           {/if}
         </div>
       </div>
 
-      {#if entry.bio}
-        <p class="bio">{entry.bio}</p>
+      {#if profile.entry.fields.bio}
+        <p class="bio">{profile.entry.fields.bio}</p>
       {/if}
 
       {#if authoredTools.length > 0}
