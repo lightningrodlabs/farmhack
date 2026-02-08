@@ -34,6 +34,7 @@
   let uploadImages: UploadFiles;
   let saving = false;
   let activeSection = "basic";
+  let proxyAgentSelectValue = "";
 
   // File attachments per section
   type PendingFile = { hash: EntryHash; name: string; file_type: string };
@@ -258,7 +259,7 @@
         <div class="two-col">
           <div class="col-fields">
             <label>
-              Title <span class="required">*</span>
+              <span class="label-text">Title <span class="required" title="required field">*</span></span>
               <input type="text" bind:value={title} placeholder="Tool name" />
             </label>
 
@@ -302,43 +303,46 @@
           </div>
         </div>
 
-        <label class="expand">
-          Description <span class="required">*</span>
-          <textarea bind:value={description} placeholder="A short description of the tool concept..."></textarea>
+        <label>
+          <span class="label-text">Description <span class="required" title="required field">*</span></span>
+          <textarea bind:value={description} rows="4" placeholder="A short description of the tool concept..."></textarea>
         </label>
 
-        <div class="authors-section">
-          <div class="field-label">Authors <span class="required">*</span></div>
-          <div class="authors-list">
-            {#each existingAuthors as a, i}
-              <div class="author-item">
-                <AnyAvatar agent={a.agent} size={24} showNickname={true} />
-                <button class="file-remove-btn" on:click={() => removeExistingAuthor(i)}>x</button>
-              </div>
-            {/each}
-            {#each pendingAuthors as a, i}
-              <div class="author-item pending">
-                <AnyAvatar agent={a.agent} size={24} showNickname={true} />
-                <button class="file-remove-btn" on:click={() => removePendingAuthor(i)}>x</button>
-              </div>
-            {/each}
+        <div class="authors-section two-col">
+          <div class="col-fields">
+            <div class="field-label">Authors <span class="required" title="required field">*</span></div>
+            <div class="authors-list">
+              {#each existingAuthors as a, i}
+                <div class="author-item">
+                  <AnyAvatar agent={a.agent} size={24} showNickname={true} />
+                  <button class="file-remove-btn" on:click={() => removeExistingAuthor(i)}>x</button>
+                </div>
+              {/each}
+              {#each pendingAuthors as a, i}
+                <div class="author-item pending">
+                  <AnyAvatar agent={a.agent} size={24} showNickname={true} />
+                  <button class="file-remove-btn" on:click={() => removePendingAuthor(i)}>x</button>
+                </div>
+              {/each}
+            </div>
           </div>
           <div class="authors-add">
             <search-agent
-              field-label="Add Agent"
+              field-label="Add Author"
               include-myself={true}
               clear-on-select={true}
               on:agent-selected={(e) => addAgentAuthor(e.detail.agentPubKey)}
             ></search-agent>
             <select
-              on:change={(e) => {
-                if (e.target.value) {
-                  addProxyAuthor(decodeHashFromBase64(e.target.value));
-                  e.target.value = "";
+              bind:value={proxyAgentSelectValue}
+              on:change={() => {
+                if (proxyAgentSelectValue) {
+                  addProxyAuthor(decodeHashFromBase64(proxyAgentSelectValue));
+                  proxyAgentSelectValue = "";
                 }
               }}
             >
-              <option value="">Add Proxy Agent...</option>
+              <option value="">Add Proxy Agent as Author...</option>
               {#each $proxyAgents.filter(p => !authorAlreadyAdded(p.original_hash)) as pa}
                 <option value={encodeHashToBase64(pa.original_hash)}>{pa.record.entry.nickname}</option>
               {/each}
@@ -745,14 +749,20 @@
   }
   .authors-add {
     display: flex;
+    flex-direction: column;
     gap: 8px;
-    align-items: flex-end;
+    width: 240px;
+    flex-shrink: 0;
+    margin-right: 5px;
   }
   .authors-add select {
     padding: 6px 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 13px;
+  }
+  .label-text {
+    display: inline;
   }
   .required {
     color: #c00;
