@@ -146,6 +146,57 @@ function placeholderHash() {
 }
 
 /**
+ * Remove "Attached files" sections from markdown when the listed files
+ * match files we've already captured separately as attachments.
+ */
+function stripAttachedFilesSection(markdown, attachedFileNames) {
+  if (!markdown || attachedFileNames.length === 0) return markdown;
+
+  const normalizedNames = new Set(attachedFileNames.map(n => n.toLowerCase().trim()));
+  const lines = markdown.split("\n");
+  const result = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const stripped = lines[i].replace(/^#{1,6}\s+/, "").replace(/\*\*/g, "").trim().toLowerCase();
+    if (stripped === "attached files" || stripped === "attached file") {
+      const sectionStart = i;
+      i++;
+      // Collect link texts, skipping blank lines and short Drupal label remnants (e.g. "File")
+      const linkNames = [];
+      while (i < lines.length) {
+        const line = lines[i].trim();
+        if (line === "") { i++; continue; }
+        const linkMatch = line.match(/^\[([^\]]+)\]\(.+\)$/);
+        if (linkMatch) {
+          // Unescape markdown characters (turndown escapes underscores, etc.)
+          linkNames.push(linkMatch[1].replace(/\\(.)/g, "$1").toLowerCase().trim());
+          i++;
+          continue;
+        }
+        // Skip short non-link text (Drupal field labels like "File")
+        if (line.length <= 20 && !/^#{1,6}\s/.test(line)) { i++; continue; }
+        break;
+      }
+      // Skip trailing blank lines
+      while (i < lines.length && lines[i].trim() === "") i++;
+
+      // If all link texts match our captured file names, drop the section
+      if (linkNames.length > 0 && linkNames.every(n => normalizedNames.has(n))) {
+        continue;
+      }
+      // Otherwise keep it
+      for (let j = sectionStart; j < i; j++) result.push(lines[j]);
+    } else {
+      result.push(lines[i]);
+      i++;
+    }
+  }
+
+  return result.join("\n").trim();
+}
+
+/**
  * Convert HTML to markdown, cleaning up Drupal artifacts.
  */
 function htmlToMarkdown(html) {
@@ -368,6 +419,10 @@ async function scrapeTool(url) {
       attachedFiles.push(fileData);
     }
   }
+
+  // Strip redundant "Attached files" listing from wiki2 since we captured them separately
+  const attachedFileNames = attachedFiles.map(af => af.file.name);
+  wiki2 = stripAttachedFilesSection(wiki2, attachedFileNames);
 
   // Skills section - convert to markdown
   let wiki3 = "";
