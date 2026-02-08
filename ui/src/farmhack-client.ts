@@ -7,7 +7,7 @@ import type {
   RoleName,
   ZomeName
 } from '@holochain/client';
-import type { Tool, UpdateToolInput, Note, UpdateNoteInput, Relation, RelationInfo, GetFeedInput, Info, ProxyAgent, UpdateProxyAgentInput } from './farmhack/farmhack/types';
+import type { Tool, UpdateToolInput, Note, UpdateNoteInput, Relation, RelationInfo, GetFeedInput, FeedElem, Info, ProxyAgent, UpdateProxyAgentInput } from './farmhack/farmhack/types';
 
 export class FarmHackClient {
   constructor(public client: AppClient, public roleName: RoleName, public zomeName: ZomeName = 'farmhack') {}
@@ -56,8 +56,21 @@ export class FarmHackClient {
     return this.callZome('delete_relations', hashes);
   }
 
-  async getFeed(input: GetFeedInput): Promise<Array<RelationInfo>> {
-    return this.callZome('get_feed', input);
+  async getFeed(input: GetFeedInput): Promise<Array<FeedElem>> {
+    const relations: Array<RelationInfo> = await this.callZome('get_feed', input);
+    return relations.map(ri => {
+      const r = ri.relation;
+      const author = r.src;
+      (author as any)[1] = 32;
+      return {
+        hash: ri.create_link_hash,
+        timestamp: ri.timestamp / 1000,
+        author,
+        about: r.dst,
+        type: parseInt(r.content.path.split(".")[1]),
+        detail: JSON.parse(r.content.data),
+      };
+    });
   }
 
   async createProxyAgent(proxyAgent: ProxyAgent): Promise<Record> {

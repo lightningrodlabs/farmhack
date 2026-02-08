@@ -3,7 +3,7 @@ import type { ProfilesStore } from "@holochain-open-dev/profiles";
 import type { FileStorageClient } from "@holochain-open-dev/file-storage";
 import type { ActionHash, DnaHash, EntryHash, AgentPubKey } from "@holochain/client";
 import type { FarmHackClient } from "../farmhack-client";
-import { DetailsType, type Info, type Tool, type Note, type UIProps, type Details, type RelationInfo, type Relation, type ProxyAgent, type UpdateProxyAgentInput } from "../farmhack/farmhack/types";
+import { DetailsType, FeedType, type Info, type Tool, type Note, type UIProps, type Details, type RelationInfo, type Relation, type FeedElem, type GetFeedInput, type ProxyAgent, type UpdateProxyAgentInput } from "../farmhack/farmhack/types";
 import { EntryRecord } from "@holochain-open-dev/utils";
 import type { CloneManagerStore } from "./clone-manager-store";
 import { encodeHashToBase64 } from "@holochain/client";
@@ -12,6 +12,7 @@ export class FarmHackStore {
   tools: Writable<Array<Info<Tool>>> = writable([]);
   notes: Writable<Map<string, Info<Note>>> = writable(new Map());
   proxyAgents: Writable<Array<Info<ProxyAgent>>> = writable([]);
+  feed: Writable<Array<FeedElem>> = writable([]);
   uiProps: Writable<UIProps> = writable({
     pane: "tools",
     detailsStack: [],
@@ -64,10 +65,36 @@ export class FarmHackStore {
     this.notes.set(currentNotes);
   }
 
+  async fetchFeed(filter?: GetFeedInput) {
+    try {
+      const feed = await this.client.getFeed(filter || { count: 50 });
+      this.feed.update(n => {
+        feed.forEach(f => {
+          const fB64 = encodeHashToBase64(f.hash);
+          const idx = n.findIndex(s => encodeHashToBase64(s.hash) === fB64);
+          if (idx >= 0) {
+            n[idx] = f;
+          } else {
+            n.push(f);
+          }
+        });
+        return n;
+      });
+    } catch (e) {
+      console.log("Error fetching feed", e);
+    }
+  }
+
   async createTool(tool: Tool): Promise<ActionHash> {
     const record = await this.client.createTool(tool);
+    const actionHash = new EntryRecord(record).actionHash;
+    await this.client.createRelations([{
+      src: actionHash,
+      dst: actionHash,
+      content: { path: `feed.${FeedType.ToolNew}`, data: JSON.stringify(tool.title) },
+    }]);
     await this.fetchTools();
-    return new EntryRecord(record).actionHash;
+    return actionHash;
   }
 
   async updateTool(originalHash: ActionHash, previousHash: ActionHash, tool: Tool): Promise<void> {
@@ -76,12 +103,24 @@ export class FarmHackStore {
       previous_tool_hash: previousHash,
       updated_tool: tool,
     });
+    await this.client.createRelations([{
+      src: originalHash,
+      dst: originalHash,
+      content: { path: `feed.${FeedType.ToolUpdate}`, data: JSON.stringify({ title: tool.title }) },
+    }]);
     await this.fetchTools();
   }
 
   async createNote(note: Note): Promise<ActionHash> {
     const record = await this.client.createNote(note);
     const actionHash = new EntryRecord(record).actionHash;
+    if (note.tool) {
+      await this.client.createRelations([{
+        src: note.tool,
+        dst: note.tool,
+        content: { path: `feed.${FeedType.NoteNew}`, data: JSON.stringify(note.text.slice(0, 100)) },
+      }]);
+    }
     return actionHash;
   }
 
@@ -151,8 +190,14 @@ export class FarmHackStore {
   async createProxyAgent(nickname: string, bio: string, location: string, pic: EntryHash | undefined): Promise<ActionHash> {
     const proxyAgent: ProxyAgent = { nickname, bio, location, pic };
     const record = await this.client.createProxyAgent(proxyAgent);
+    const actionHash = new EntryRecord(record).actionHash;
+    await this.client.createRelations([{
+      src: actionHash,
+      dst: actionHash,
+      content: { path: `feed.${FeedType.ProxyAgentNew}`, data: JSON.stringify(nickname) },
+    }]);
     await this.fetchProxyAgents();
-    return new EntryRecord(record).actionHash;
+    return actionHash;
   }
 
   async updateProxyAgent(originalHash: ActionHash, nickname: string, bio: string, location: string, pic: EntryHash | undefined): Promise<void> {
@@ -169,11 +214,19 @@ export class FarmHackStore {
     }
   }
 
-  async deleteProxyAgent(originalHash: ActionHash): Promise<void> {
+  async deleteProxyAgent(originalHash: ActionHash, skipFeed = false): Promise<void> {
     const idx = this.getProxyAgentIdx(originalHash);
     if (idx >= 0) {
       const proxyAgent = get(this.proxyAgents)[idx];
+      const nickname = proxyAgent.record.entry.nickname;
       await this.client.deleteProxyAgent(proxyAgent.record.actionHash);
+      if (!skipFeed) {
+        await this.client.createRelations([{
+          src: originalHash,
+          dst: originalHash,
+          content: { path: `feed.${FeedType.ProxyAgentDelete}`, data: JSON.stringify(nickname) },
+        }]);
+      }
       this.proxyAgents.update((agents) => {
         agents.splice(idx, 1);
         return agents;

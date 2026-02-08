@@ -3,7 +3,7 @@
   import { getStoreContext } from "../../contexts";
   import type { ActionHash } from "@holochain/client";
   import { encodeHashToBase64 } from "@holochain/client";
-  import { toolAuthors, agentToLinkable } from "./types";
+  import { toolAuthors, agentToLinkable, FeedType } from "./types";
   import { toPromise } from "@holochain-open-dev/stores";
   import ProxyAgentAvatar from "./ProxyAgentAvatar.svelte";
   import ToolSummary from "./ToolSummary.svelte";
@@ -54,7 +54,15 @@
         }]);
       }
 
-      await store.deleteProxyAgent(profileHash);
+      await store.deleteProxyAgent(profileHash, true);
+      await store.createRelations([{
+        src: profileHash,
+        dst: profileHash,
+        content: {
+          path: `feed.${FeedType.ProxyAgentDelete}`,
+          data: JSON.stringify({ claimed: true, proxyName: entry.nickname, claimedBy: myNickname }),
+        },
+      }]);
       await store.fetchTools();
       await store.fetchProxyAgents();
       dispatch('close');

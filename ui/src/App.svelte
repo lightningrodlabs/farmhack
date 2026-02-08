@@ -56,7 +56,7 @@
   const loadStore = async () => {
     if (!$store) return;
     loading = true;
-    await Promise.all([$store.fetchTools(), $store.fetchProxyAgents()]);
+    await Promise.all([$store.fetchTools(), $store.fetchProxyAgents(), $store.fetchFeed()]);
     loading = false;
   };
 
