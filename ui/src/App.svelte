@@ -11,6 +11,10 @@
   import Admin from "./farmhack/farmhack/Admin.svelte";
   import AllProxyAgents from "./farmhack/farmhack/AllProxyAgents.svelte";
   import AgentProfile from "./farmhack/farmhack/AgentProfile.svelte";
+  import MyProfile from "./farmhack/farmhack/MyProfile.svelte";
+  import "@shoelace-style/shoelace/dist/themes/light.css";
+  import "@holochain-open-dev/profiles/dist/elements/profiles-context.js";
+  import "@holochain-open-dev/profiles/dist/elements/create-profile.js";
   import "@holochain-open-dev/file-storage/dist/elements/file-storage-context.js";
 
   let cloneManagerStore: CloneManagerStore | undefined;
@@ -20,6 +24,8 @@
   let showCreateTool = false;
 
   $: store = cloneManagerStore?.activeStore;
+  $: prof = $store ? $store.profilesStore.myProfile : undefined;
+  $: isWeave = $store ? $store.isWeaveContext : false;
   $: uiProps = $store ? $store.uiProps : undefined;
   $: pane = $store ? $uiProps.pane : "tools";
   $: topDetail = $store && $uiProps.detailsStack.length > 0 ? $uiProps.detailsStack[0] : undefined;
@@ -77,7 +83,19 @@
         <span>Loading...</span>
       </div>
     {:else if $store}
+      <profiles-context store={$store.profilesStore}>
       <file-storage-context client={$store.fileStorageClient}>
+      {#if !isWeave && $prof && $prof.status === "complete" && $prof.value === undefined}
+        <div class="welcome">
+          <div class="welcome-card">
+            <h2>Welcome to FarmHack</h2>
+            <p>Create a profile to get started.</p>
+            <create-profile
+              on:profile-created={() => {}}
+            ></create-profile>
+          </div>
+        </div>
+      {:else}
       <div class="pane">
         <div class="pane-header">
           <div class="header-content">
@@ -97,6 +115,8 @@
             <AllTools />
           {:else if pane === "feed"}
             <Feed />
+          {:else if pane === "you"}
+            <MyProfile />
           {:else if pane === "admin"}
             <Admin
               on:admin-close={() => setPane("tools")}
@@ -131,6 +151,12 @@
           </svg>
           <span class="button-title">Feed</span>
         </button>
+        <button class="nav-button" class:selected={pane === "you"} on:click={() => setPane("you")}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span class="button-title">You</span>
+        </button>
         <button class="nav-button" class:selected={pane === "admin" || pane === "proxyagents"} on:click={() => setPane("admin")}>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -142,7 +168,9 @@
       {#if showCreateTool}
         <ToolCrud on:save={handleToolCreated} on:cancel={() => showCreateTool = false} />
       {/if}
+      {/if}
       </file-storage-context>
+      </profiles-context>
     {/if}
   {:else}
     {#if error}
@@ -161,5 +189,23 @@
   h3 {
     font-size: 18px;
     font-weight: 600;
+  }
+  .welcome {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    padding: 20px;
+  }
+  .welcome-card {
+    text-align: center;
+    max-width: 400px;
+  }
+  .welcome-card h2 {
+    margin: 0 0 8px 0;
+  }
+  .welcome-card p {
+    color: #666;
+    margin: 0 0 24px 0;
   }
 </style>

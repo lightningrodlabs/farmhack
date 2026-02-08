@@ -25,6 +25,14 @@ export class FarmHackStore {
     public activeDnaHash: DnaHash,
   ) {}
 
+  get myPubKey(): AgentPubKey {
+    return this.cloneManager.client.myPubKey;
+  }
+
+  get isWeaveContext(): boolean {
+    return this.cloneManager.weaveClient !== undefined;
+  }
+
   async fetchTools() {
     const toolInfos = await this.client.getAllTools();
     const tools: Array<Info<Tool>> = toolInfos.map((ti: any) => ({
