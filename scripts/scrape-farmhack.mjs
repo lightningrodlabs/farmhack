@@ -13,8 +13,14 @@
 
 import cheerio from "cheerio";
 import TurndownService from "turndown";
-import { writeFileSync } from "fs";
+import sharp from "sharp";
+import { writeFileSync, createWriteStream } from "fs";
 import { Buffer } from "buffer";
+
+// Max dimensions for downscaled images
+const MAX_IMAGE_WIDTH = 1200;
+const MAX_IMAGE_HEIGHT = 1200;
+const IMAGE_QUALITY = 80;
 
 const devIndex = process.argv.indexOf("--dev");
 const DEV_MODE = devIndex !== -1;
@@ -128,7 +134,29 @@ async function fetchFileAsBase64(url, defaultName = "file", defaultType = "appli
 }
 
 async function fetchImageAsBase64(url) {
-  return fetchFileAsBase64(url, "image.jpg", "image/jpeg");
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const rawBuf = Buffer.from(await resp.arrayBuffer());
+    const resized = await sharp(rawBuf)
+      .resize(MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT, { fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: IMAGE_QUALITY })
+      .toBuffer();
+    const name = decodeURIComponent(url.split("/").pop().split("?")[0] || "image.jpg")
+      .replace(/\.\w+$/, ".jpg");
+    return {
+      data: resized.toString("base64"),
+      file: {
+        name,
+        size: resized.length,
+        file_type: "image/jpeg",
+        last_modified: Date.now(),
+      },
+    };
+  } catch (e) {
+    console.warn(`  Warning: could not fetch/resize image ${url}: ${e.message}`);
+    return null;
+  }
 }
 
 let hashCounter = 0;
@@ -143,6 +171,38 @@ function placeholderHash() {
     buf[3 + i] = str.charCodeAt(i);
   }
   return Buffer.from(buf).toString("base64");
+}
+
+/**
+ * Write importData to a JSON file in streaming fashion to avoid
+ * exceeding V8's max string length with large base64-encoded payloads.
+ */
+function writeImportJson(filePath, data) {
+  return new Promise((resolve, reject) => {
+    const ws = createWriteStream(filePath, { encoding: "utf8" });
+    ws.on("error", reject);
+    ws.on("finish", resolve);
+
+    function writeArray(arr) {
+      ws.write("[");
+      for (let i = 0; i < arr.length; i++) {
+        if (i > 0) ws.write(",");
+        ws.write(JSON.stringify(arr[i]));
+      }
+      ws.write("]");
+    }
+
+    ws.write('{"tools":');
+    writeArray(data.tools);
+    ws.write(',"notes":');
+    writeArray(data.notes);
+    ws.write(',"proxyAgents":');
+    writeArray(data.proxyAgents);
+    ws.write(',"agents":');
+    writeArray(data.agents || []);
+    ws.write("}");
+    ws.end();
+  });
 }
 
 /**
@@ -687,7 +747,7 @@ async function main() {
 
   const outName = DEV_MODE ? "farmhack-scraped-dev.json" : "farmhack-scraped.json";
   const outFile = new URL(`./${outName}`, import.meta.url).pathname;
-  writeFileSync(outFile, JSON.stringify(importData, null, 2));
+  await writeImportJson(outFile, importData);
   console.log(`Output written to: ${outFile}`);
   console.log("Done.");
 }

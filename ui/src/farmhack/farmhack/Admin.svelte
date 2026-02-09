@@ -167,15 +167,11 @@
     }
 
     let fileinput;
-    const onFileSelected = (e) => {
+    const onFileSelected = async (e) => {
         let file = e.target.files[0];
-        let reader = new FileReader();
-
-        reader.addEventListener("load", async () => {
-            const b = JSON.parse(reader.result as string);
-            doImport(b);
-        }, false);
-        reader.readAsText(file);
+        const text = await file.text();
+        const b = JSON.parse(text);
+        doImport(b);
     };
 
     let uploadedPics = {};
