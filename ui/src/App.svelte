@@ -1,9 +1,11 @@
 <script lang="ts">
   import { onMount, setContext } from "svelte";
-  import { AppWebsocket } from "@holochain/client";
+  import { AdminWebsocket, AppWebsocket, type AppClient, type AppWebsocketConnectionOptions } from "@holochain/client";
+  import { WeaveClient, initializeHotReload, isWeaveContext } from '@theweave/api';
+  import { appletServices } from './we';
   import { CloneManagerStore } from "./stores/clone-manager-store";
   import { storeContext, cloneManagerStoreContext } from "./contexts";
-  import { ROLE_NAME, DetailsType } from "./farmhack/farmhack/types";
+  import { APP_ID, ROLE_NAME, DetailsType } from "./farmhack/farmhack/types";
   import AllTools from "./farmhack/farmhack/AllTools.svelte";
   import ToolDetail from "./farmhack/farmhack/ToolDetail.svelte";
   import ToolCrud from "./farmhack/farmhack/ToolCrud.svelte";
@@ -18,6 +20,8 @@
   import "@holochain-open-dev/profiles/dist/elements/create-profile.js";
   import "@holochain-open-dev/file-storage/dist/elements/file-storage-context.js";
 
+  let client: AppClient | undefined;
+  let weClient: WeaveClient;
   let cloneManagerStore: CloneManagerStore | undefined;
   let loading = true;
   let connected = false;
@@ -33,10 +37,75 @@
 
   onMount(async () => {
     try {
-      const url = `ws://localhost:${import.meta.env.VITE_APP_PORT}`;
-      const client = await AppWebsocket.connect(import.meta.env.VITE_APP_PORT ? url : undefined);
+      if ((import.meta as any).env.DEV) {
+        try {
+          await initializeHotReload();
+        } catch (e) {
+          console.warn("Could not initialize applet hot-reloading. This is only expected to work in a Moss context in dev mode.");
+        }
+      }
 
-      cloneManagerStore = new CloneManagerStore(client);
+      if (!isWeaveContext()) {
+        const adminPort: string = import.meta.env.VITE_ADMIN_PORT;
+        const appPort: string = import.meta.env.VITE_APP_PORT;
+        const url = appPort ? `ws://localhost:${appPort}` : `ws://localhost`;
+
+        let tokenResp;
+        if (adminPort) {
+          const adminUrl = `ws://localhost:${adminPort}`;
+          const adminWebsocket = await AdminWebsocket.connect({ url: new URL(adminUrl) });
+          tokenResp = await adminWebsocket.issueAppAuthenticationToken({
+            installed_app_id: APP_ID,
+          });
+          const cellIds = await adminWebsocket.listCellIds();
+          await adminWebsocket.authorizeSigningCredentials(cellIds[0]);
+        }
+
+        const params: AppWebsocketConnectionOptions = { url: new URL(url), defaultTimeout: 240000 };
+        if (tokenResp) params.token = tokenResp.token;
+        client = await AppWebsocket.connect(params);
+      } else {
+        weClient = await WeaveClient.connect(appletServices);
+        switch (weClient.renderInfo.type) {
+          case "applet-view":
+            switch (weClient.renderInfo.view.type) {
+              case "main":
+                break;
+              case "block":
+                throw new Error("Unknown applet-view block type:" + weClient.renderInfo.view.block);
+              case "asset":
+                if (!weClient.renderInfo.view.recordInfo) {
+                  throw new Error("FarmHack does not implement asset views pointing to DNAs instead of Records.");
+                } else {
+                  switch (weClient.renderInfo.view.recordInfo.roleName) {
+                    case ROLE_NAME:
+                      switch (weClient.renderInfo.view.recordInfo.entryType) {
+                        case "tool":
+                          break;
+                        default:
+                          throw new Error("Unknown entry type:" + weClient.renderInfo.view.recordInfo.entryType);
+                      }
+                      break;
+                    default:
+                      throw new Error("Unknown role name:" + weClient.renderInfo.view.recordInfo.roleName);
+                  }
+                }
+                break;
+              default:
+                throw new Error("Unsupported applet-view type");
+            }
+            break;
+          case "cross-group-view":
+            throw new Error("Cross-group views not yet supported.");
+          default:
+            throw new Error("Unknown render view type");
+        }
+
+        //@ts-ignore
+        client = weClient.renderInfo.appletClient;
+      }
+
+      cloneManagerStore = new CloneManagerStore(client, weClient);
       await cloneManagerStore.activeStore.load();
       connected = true;
     } catch (e) {

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "start": "vite --clearScreen false --port $UI_PORT",
+    "start": "vite --clearScreen false",
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "package": "npm run build && cd dist && bestzip ../dist.zip *"
@@ -15,7 +15,7 @@
     "@holochain-open-dev/stores": "^0.601.0",
     "@holochain-open-dev/utils": "^0.601.0",
     "@holochain/client": "^0.20.4-rc.0",
-    "@theweave/api": "^0.6.4",
+    "@theweave/api": "^0.6.6",
     "@theweave/elements": "^0.6.2",
     "@shoelace-style/shoelace": "^2.3.0",
     "@square/svelte-store": "^1.0.18",
