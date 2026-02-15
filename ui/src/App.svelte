@@ -19,6 +19,8 @@
   import "@holochain-open-dev/profiles/dist/elements/profiles-context.js";
   import "@holochain-open-dev/profiles/dist/elements/create-profile.js";
   import "@holochain-open-dev/file-storage/dist/elements/file-storage-context.js";
+  import farmhackLogo from "./assets/farmhack-logo.png";
+  import farmhackWordmark from "./assets/farmhack-wordmark.png";
 
   let client: AppClient | undefined;
   let weClient: WeaveClient;
@@ -175,29 +177,21 @@
         </div>
       {:else}
       <div class="pane">
-        <div class="pane-header">
-          <div class="header-content">
-            <h3>FarmHack</h3>
-            <div style="display: flex; gap: 8px; align-items: center;">
-              {#if pane === "tools"}
-                <button on:click={() => showCreateTool = true} style="border: none; background: var(--primary-color); color: white; padding: 4px 12px; border-radius: 4px; cursor: pointer;">
-                  + New Tool
-                </button>
-              {/if}
-            </div>
-          </div>
-        </div>
-
         <div class="pane-content">
-          {#if pane === "tools"}
-            <AllTools />
+          {#if pane === "about"}
+            <div class="about-pane">
+              <img src={farmhackWordmark} alt="FarmHack" class="about-wordmark" />
+              <p class="about-prototype">This is a prototype of the FarmHack Tool library running on Holochain.</p>
+              <p class="about-description">FarmHack is a community for those who embrace the long-standing farm traditions of tinkering, inventing, fabricating, tweaking, and improving things that break. We are farmers of all ages, but the project has special relevance to young and beginning farmers as a place to learn from their peers' and their elders' successes, mistakes and new ideas. We also seek to bring our non-farmer allies on board: engineers, architects, designers, and the like. Together, with an open-source ethic, we can retool our farms for a sustainable future.</p>
+            </div>
+          {:else if pane === "tools"}
+            <AllTools on:create-tool={() => showCreateTool = true} />
           {:else if pane === "feed"}
             <Feed />
           {:else if pane === "you"}
             <MyProfile />
           {:else if pane === "admin"}
             <Admin
-              on:admin-close={() => setPane("tools")}
               on:open-proxyagents={() => setPane("proxyagents")}
             />
           {:else if pane === "proxyagents"}
@@ -219,6 +213,10 @@
       </div>
 
       <nav class="nav">
+        <button class="nav-button" class:selected={pane === "about"} on:click={() => setPane("about")}>
+          <img src={farmhackLogo} alt="FarmHack" width="20" height="20" />
+          <span class="button-title">FarmHack</span>
+        </button>
         <button class="nav-button" class:selected={pane === "tools"} on:click={() => setPane("tools")}>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
@@ -266,9 +264,31 @@
 </div>
 
 <style>
-  h3 {
-    font-size: 18px;
-    font-weight: 600;
+  .about-pane {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .about-wordmark {
+    max-width: 300px;
+    height: auto;
+    margin-bottom: 24px;
+  }
+  .about-prototype {
+    font-size: 0.85rem;
+    color: var(--muted-text-color);
+    text-align: center;
+    margin: 0 0 16px 0;
+  }
+  .about-description {
+    font-size: 1rem;
+    line-height: 1.6;
+    text-align: center;
+    margin: 0;
+    color: var(--text-color, #333);
   }
   .welcome {
     display: flex;

@@ -57,28 +57,19 @@ input, button, textarea, select {
 .nav-button {
   flex: 1;
   text-align: center;
-  padding: 0.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 50px;
-  font-size: 9px;
-  padding: 5px;
-  margin: 5px;
+  padding: 8px 5px;
   background-color: transparent;
   color: var(--dark-text-color);
-  transition: all .25s ease;
   border: none;
 }
 
 .nav-button.selected {
   background: linear-gradient(228.21deg, #4CAF50 0%, #2E7D32 94.99%);
-  box-shadow: 0px 15px 25px rgba(0, 0, 0, 0.15);
-  color: rgba(255,255,255,1);
-  padding: 0px 10px;
-  height: 100%;
-  margin: 0;
+  color: #fff;
 }
 
 .nav-button .button-title {
@@ -191,6 +182,7 @@ input, button, textarea, select {
   }
 
   .pane-content {
+    padding-top: 70px;
     padding-bottom: 100px;
   }
 

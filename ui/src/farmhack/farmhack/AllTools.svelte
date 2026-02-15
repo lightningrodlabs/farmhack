@@ -1,8 +1,10 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, createEventDispatcher } from "svelte";
   import { getStoreContext } from "../../contexts";
   import { toolTags } from "./types";
   import ToolSummary from "./ToolSummary.svelte";
+
+  const dispatch = createEventDispatcher();
 
   const store = getStoreContext();
   const toolsStore = store.tools;
@@ -79,6 +81,7 @@
 
 <div class="tools-layout">
   <aside class="tools-sidebar">
+    <button class="new-tool-btn" on:click={() => dispatch('create-tool')}>+ New Tool</button>
     <div class="search-box">
       <input
         type="text"
@@ -137,7 +140,7 @@
     position: sticky;
     top: 0;
     align-self: flex-start;
-    max-height: calc(100vh - 180px);
+    max-height: calc(100vh - 120px);
     overflow-y: auto;
   }
   .tools-main {
@@ -174,6 +177,20 @@
   }
   .clear-btn:hover {
     background: #f0f0f0;
+  }
+  .new-tool-btn {
+    width: 100%;
+    padding: 6px 12px;
+    border: none;
+    background: var(--primary-color, #4a7c59);
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .new-tool-btn:hover {
+    opacity: 0.9;
   }
   .sidebar-heading {
     font-size: 11px;

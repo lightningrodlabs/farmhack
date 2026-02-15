@@ -93,7 +93,6 @@ export class FarmHackStore {
       dst: actionHash,
       content: { path: `feed.${FeedType.ToolNew}`, data: JSON.stringify(tool.title) },
     }]);
-    await this.fetchTools();
     return actionHash;
   }
 
@@ -108,7 +107,6 @@ export class FarmHackStore {
       dst: originalHash,
       content: { path: `feed.${FeedType.ToolUpdate}`, data: JSON.stringify({ title: tool.title }) },
     }]);
-    await this.fetchTools();
   }
 
   async createNote(note: Note): Promise<ActionHash> {
@@ -196,7 +194,6 @@ export class FarmHackStore {
       dst: actionHash,
       content: { path: `feed.${FeedType.ProxyAgentNew}`, data: JSON.stringify(nickname) },
     }]);
-    await this.fetchProxyAgents();
     return actionHash;
   }
 

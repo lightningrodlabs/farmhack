@@ -68,6 +68,7 @@ async function updateProxyAgent() {
 async function createProxyAgent() {
     try {
         const actionHash = await store.createProxyAgent(nickname, bio, location, pic);
+        await store.fetchProxyAgents();
         dispatch('proxyagent-created', { actionHash });
         dialog.close();
     } catch (e) {

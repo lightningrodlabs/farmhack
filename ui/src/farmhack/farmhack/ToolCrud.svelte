@@ -228,6 +228,7 @@
         }
       }
 
+      await store.fetchTools();
       showModal = false;
       dispatch("save");
     } catch (e) {

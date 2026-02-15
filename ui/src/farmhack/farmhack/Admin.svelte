@@ -397,15 +397,7 @@
 
 <input style="display:none" type="file" accept=".json" on:change={(e) => onFileSelected(e)} bind:this={fileinput}>
 
-<div class="pane-header">
-    <div class="header-content">
-        <h3>Admin</h3>
-        <div style="display:flex">
-            <button on:click={() => dispatch('admin-close')}>Close</button>
-        </div>
-    </div>
-</div>
-<div class="pane-content admin-content">
+<div class="admin-content">
     <div class="admin-header">
         <h2>FarmHack v{APP_VERSION}: Administration</h2>
         <p>Use the buttons below to configure and administer your FarmHack instance.</p>
@@ -494,17 +486,6 @@
         flex-direction: column;
         align-items: flex-end;
         gap: 8px;
-    }
-
-    .header-content h3 {
-        text-align: center;
-        width: 100%;
-    }
-
-    .admin-header {
-        margin-bottom: 20px;
-        text-align: center;
-        width: 100%;
     }
 
     button {
