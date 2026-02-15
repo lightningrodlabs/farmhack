@@ -19,7 +19,7 @@
   import "@holochain-open-dev/profiles/dist/elements/profiles-context.js";
   import "@holochain-open-dev/profiles/dist/elements/create-profile.js";
   import "@holochain-open-dev/file-storage/dist/elements/file-storage-context.js";
-  import farmhackLogo from "./assets/farmhack-logo.png";
+  import farmhackLogo from "./assets/farmhack-logo.svg";
   import farmhackWordmark from "./assets/farmhack-wordmark.png";
 
   let client: AppClient | undefined;
@@ -180,8 +180,9 @@
         <div class="pane-content">
           {#if pane === "about"}
             <div class="about-pane">
-              <img src={farmhackWordmark} alt="FarmHack" class="about-wordmark" />
-              <p class="about-prototype">This is a prototype of the FarmHack Tool library running on Holochain. v{APP_VERSION}</p>
+              <img src="/src/assets/farmhack-logo.svg" alt="FarmHack" width="40" height="40" >
+              <img src={farmhackWordmark} alt="FarmHack" class="about-wordmark" /> v{APP_VERSION}
+              <p class="about-prototype">This is a prototype of the FarmHack Tool library running on Holochain. </p>
               <p class="about-description">FarmHack is a community for those who embrace the long-standing farm traditions of tinkering, inventing, fabricating, tweaking, and improving things that break. We are farmers of all ages, but the project has special relevance to young and beginning farmers as a place to learn from their peers' and their elders' successes, mistakes and new ideas. We also seek to bring our non-farmer allies on board: engineers, architects, designers, and the like. Together, with an open-source ethic, we can retool our farms for a sustainable future.</p>
             </div>
           {:else if pane === "tools"}
