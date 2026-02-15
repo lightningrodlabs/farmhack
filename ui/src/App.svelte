@@ -5,7 +5,7 @@
   import { appletServices } from './we';
   import { CloneManagerStore } from "./stores/clone-manager-store";
   import { storeContext, cloneManagerStoreContext } from "./contexts";
-  import { APP_ID, ROLE_NAME, DetailsType } from "./farmhack/farmhack/types";
+  import { APP_ID, APP_VERSION, ROLE_NAME, DetailsType } from "./farmhack/farmhack/types";
   import AllTools from "./farmhack/farmhack/AllTools.svelte";
   import ToolDetail from "./farmhack/farmhack/ToolDetail.svelte";
   import ToolCrud from "./farmhack/farmhack/ToolCrud.svelte";
@@ -181,7 +181,7 @@
           {#if pane === "about"}
             <div class="about-pane">
               <img src={farmhackWordmark} alt="FarmHack" class="about-wordmark" />
-              <p class="about-prototype">This is a prototype of the FarmHack Tool library running on Holochain.</p>
+              <p class="about-prototype">This is a prototype of the FarmHack Tool library running on Holochain. v{APP_VERSION}</p>
               <p class="about-description">FarmHack is a community for those who embrace the long-standing farm traditions of tinkering, inventing, fabricating, tweaking, and improving things that break. We are farmers of all ages, but the project has special relevance to young and beginning farmers as a place to learn from their peers' and their elders' successes, mistakes and new ideas. We also seek to bring our non-farmer allies on board: engineers, architects, designers, and the like. Together, with an open-source ethic, we can retool our farms for a sustainable future.</p>
             </div>
           {:else if pane === "tools"}
