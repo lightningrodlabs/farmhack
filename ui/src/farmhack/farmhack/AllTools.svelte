@@ -45,6 +45,7 @@
     return true;
   });
 
+  $: totalTools = $toolsStore.filter(t => !t.record.entry.trashed).length;
   $: visibleTools = tools.slice(0, visibleCount);
   $: hasMore = visibleCount < tools.length;
 
@@ -81,7 +82,7 @@
     <div class="search-box">
       <input
         type="text"
-        placeholder="Search tools..."
+        placeholder="Search {totalTools} tools..."
         bind:value={searchQuery}
         class="search-input"
       />

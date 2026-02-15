@@ -134,6 +134,14 @@
   function setPane(p: string) {
     if ($store) {
       $store.setUIprops({ pane: p, detailsStack: [] });
+      if (p === "tools") {
+        $store.fetchTools();
+      } else if (p === "feed") {
+        $store.fetchFeed();
+      } else if (p === "admin" || p === "proxyagents") {
+        $store.fetchTools();
+        $store.fetchProxyAgents();
+      }
     }
   }
 
